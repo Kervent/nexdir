@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Nexdir",
+  "version": "0.4.3",
+  "identifier": "org.nexdir.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Nexdir",
+        "width": 1240,
+        "height": 780,
+        "minWidth": 720,
+        "minHeight": 460,
+        "center": true,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'",
+      "freezePrototype": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "publisher": "Nexdir contributors",
+    "copyright": "Copyright (c) Nexdir contributors. MIT License.",
+    "category": "Utility",
+    "shortDescription": "A smarter way to manage your files.",
+    "longDescription": "Nexdir is a modern, intelligent, open-source file manager for Windows.",
+    "resources": {
+      "../LICENSE": "LICENSE.txt",
+      "../THIRD-PARTY-NOTICES.txt": "THIRD-PARTY-NOTICES.txt"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}

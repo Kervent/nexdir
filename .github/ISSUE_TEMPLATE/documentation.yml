@@ -1,0 +1,28 @@
+name: Documentation
+description: Something in the docs is missing, wrong or hard to understand.
+labels: ["documentation", "needs triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Which page or section?
+      placeholder: "docs/development/setup.md → Prerequisites"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording or fix
+      description: Optional. Small fixes can also go straight into a pull request.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to open a pull request for this myself.

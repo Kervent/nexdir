@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-organize-apply"
+description = "Enables the organize_apply command without any pre-configured scope."
+commands.allow = ["organize_apply"]
+
+[[permission]]
+identifier = "deny-organize-apply"
+description = "Denies the organize_apply command without any pre-configured scope."
+commands.deny = ["organize_apply"]

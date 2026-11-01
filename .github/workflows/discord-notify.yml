@@ -1,0 +1,103 @@
+name: Discord announcements
+
+# Posts selected GitHub events to the Nexdir Discord server through channel webhooks:
+#   published release            -> #releases     (pre-releases only if DISCORD_ANNOUNCE_PRERELEASES is "true")
+#   issue labelled "discord: announce"           -> #github-updates
+#   merged PR with "discord: announce"           -> #github-updates
+#   closed milestone             -> #roadmap
+#   manual run (release / roadmap) -> dry run unless "dry_run" is unticked
+# Does nothing until the webhook secrets exist. Setup: tools/discord-notify/README.md
+on:
+  release:
+    types: [published]
+  issues:
+    types: [labeled]
+  # pull_request_target (not pull_request) so merged PRs from forks can be announced too.
+  # Safe here: the job checks out the BASE branch only and reads the PR's metadata (number,
+  # title, author) from the event. It never checks out or runs code from the pull request.
+  pull_request_target:
+    types: [closed, labeled]
+  milestone:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: What to announce
+        type: choice
+        options: [release, roadmap]
+        default: release
+      tag:
+        description: Release tag (for "release"), e.g. v1.2.0
+        type: string
+        required: false
+      note:
+        description: Optional short note (for "roadmap")
+        type: string
+        required: false
+      dry_run:
+        description: Only show the message in the log, do not post it
+        type: boolean
+        default: true
+
+permissions: {}
+
+# Runs about the same item (e.g. "labeled" and "closed" for one PR) are serialised, so two
+# runs can never pass the duplicate check together. Different items get different groups,
+# so a queued announcement is never replaced by an unrelated one.
+concurrency:
+  group: discord-${{ github.event_name }}-${{ github.event.release.tag_name || github.event.issue.number || github.event.pull_request.number || github.event.milestone.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  announce:
+    # Cheap pre-filter; the notifier makes the final decision and logs why it skips.
+    if: >-
+      github.event_name == 'release' || github.event_name == 'milestone' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'discord: announce') ||
+      (github.event_name == 'pull_request_target' && github.event.pull_request.merged &&
+       contains(github.event.pull_request.labels.*.name, 'discord: announce'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Webhook secrets can live in this environment; add required reviewers to it if every
+    # announcement should wait for a maintainer's approval.
+    environment: discord
+    permissions:
+      contents: read # check out the notifier, look up releases for manual runs
+      actions: read # read the announcement ledger (artifact names)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/discord-notify
+
+      # Standard library only: nothing is installed from the network.
+      - name: Announce
+        id: notify
+        working-directory: tools/discord-notify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK_RELEASES: ${{ secrets.DISCORD_WEBHOOK_RELEASES }}
+          DISCORD_WEBHOOK_GITHUB_UPDATES: ${{ secrets.DISCORD_WEBHOOK_GITHUB_UPDATES }}
+          DISCORD_WEBHOOK_ROADMAP: ${{ secrets.DISCORD_WEBHOOK_ROADMAP }}
+          DISCORD_RELEASE_ROLE_ID: ${{ vars.DISCORD_RELEASE_ROLE_ID }}
+          DISCORD_BETA_ROLE_ID: ${{ vars.DISCORD_BETA_ROLE_ID }}
+          DISCORD_NEWS_ROLE_ID: ${{ vars.DISCORD_NEWS_ROLE_ID }}
+          DISCORD_ANNOUNCE_PRERELEASES: ${{ vars.DISCORD_ANNOUNCE_PRERELEASES }}
+        run: python3 -m nexdir_notify run
+
+      # The ledger: an artifact named after the announcement. The next run finds it and
+      # does not post the same announcement again.
+      - name: Write ledger entry
+        if: steps.notify.outputs.posted == 'true'
+        env:
+          LEDGER: ${{ steps.notify.outputs.ledger }}
+        run: printf '%s\n' "$LEDGER" > "$RUNNER_TEMP/ledger.txt"
+      - name: Record announcement
+        if: steps.notify.outputs.posted == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.notify.outputs.ledger }}
+          path: ${{ runner.temp }}/ledger.txt
+          retention-days: 90
+          if-no-files-found: error

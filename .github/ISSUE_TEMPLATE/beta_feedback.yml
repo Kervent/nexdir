@@ -1,0 +1,43 @@
+name: Pre-release feedback
+description: Feedback on a Nexdir pre-release (beta or release candidate).
+labels: ["beta feedback", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing a pre-release! For a clear bug, the **Bug report** form is better.
+        Please test with copies of files, not your only copy, and do not attach personal files.
+  - type: input
+    id: version
+    attributes:
+      label: Pre-release version
+      placeholder: "0.4.0-beta.1"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: textarea
+    id: tested
+    attributes:
+      label: What did you test?
+      description: Features, folders (local, USB, network), approximate number of files.
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What worked, what didn't?
+    validations:
+      required: true
+  - type: dropdown
+    id: data-loss
+    attributes:
+      label: Was any data lost or changed unexpectedly?
+      options: ["No", "Yes", "Not sure"]
+    validations:
+      required: true

@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit real credentials or signing keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.snk
+*.cer
+*.crt
+*.spc
+*.jks
+*.keystore
+secrets/
+
+# Python (tools/discord-setup)
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+tools/discord-setup/exports/
+tools/discord-setup/reports/
+
+# Test scratch and local release output
+coverage/
+target-perf/
+release-out/
+*.tmp
+~nexdir-*
+*.tsbuildinfo
+.vite/
+
+# Local assistant/agent configuration
+.claude/

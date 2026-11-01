@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-recycle-duplicates"
+description = "Enables the recycle_duplicates command without any pre-configured scope."
+commands.allow = ["recycle_duplicates"]
+
+[[permission]]
+identifier = "deny-recycle-duplicates"
+description = "Denies the recycle_duplicates command without any pre-configured scope."
+commands.deny = ["recycle_duplicates"]

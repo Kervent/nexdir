@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clipboard-get-files"
+description = "Enables the clipboard_get_files command without any pre-configured scope."
+commands.allow = ["clipboard_get_files"]
+
+[[permission]]
+identifier = "deny-clipboard-get-files"
+description = "Denies the clipboard_get_files command without any pre-configured scope."
+commands.deny = ["clipboard_get_files"]

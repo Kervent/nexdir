@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an idea or improvement for Nexdir.
+labels: ["enhancement", "needs triage"]
+# Field ids match the in-app form (Help → Request a Feature, src/features/help/report.ts),
+# which opens this form prefilled. Keep them in sync.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! The title above should name the feature in a few words.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: What are you trying to do, and what makes it hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Expected benefit
+      description: Who would use it, and how would it help?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Alternatives you considered, examples from other apps, mock-ups. Remove personal information.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and the [roadmap](../blob/main/docs/ROADMAP.md).
+          required: true

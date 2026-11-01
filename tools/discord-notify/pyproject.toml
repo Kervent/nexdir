@@ -1,0 +1,10 @@
+[project]
+name = "nexdir-discord-notify"
+version = "0.1.0"
+description = "Announces Nexdir GitHub releases, selected issues/PRs and milestones on Discord via webhooks."
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []  # standard library only
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

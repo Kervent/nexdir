@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-task-result"
+description = "Enables the task_result command without any pre-configured scope."
+commands.allow = ["task_result"]
+
+[[permission]]
+identifier = "deny-task-result"
+description = "Denies the task_result command without any pre-configured scope."
+commands.deny = ["task_result"]

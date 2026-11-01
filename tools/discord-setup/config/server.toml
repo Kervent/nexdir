@@ -1,0 +1,320 @@
+# Desired structure of the Nexdir Community Discord server.
+#
+# The setup tool compares this file with the existing server and only CREATES what is
+# missing. It never deletes anything. Differences on existing items are shown as
+# "updates" and are applied only if you explicitly allow it.
+#
+# Permission names are discord.py permission flags, e.g. "manage_messages".
+
+[server]
+name = "Nexdir Community"
+description = "Official community, support and development server for Nexdir."
+# Official Nexdir logo (full-bleed square for Discord's circular crop). Relative to this file.
+icon = "../../../assets/branding/png/nexdir-discord-1024.png"
+# Forum channels need a Discord "Community" server. If Community is not enabled,
+# forums are created as text channels ("text") or skipped ("skip").
+forum_fallback = "text"
+
+[links]
+github = "https://github.com/Kervent/nexdir"
+releases = "https://github.com/Kervent/nexdir/releases"
+docs = "https://github.com/Kervent/nexdir/tree/main/docs"
+security = "https://github.com/Kervent/nexdir/security/advisories/new"
+contributing = "https://github.com/Kervent/nexdir/blob/main/CONTRIBUTING.md"
+
+# ---------------------------------------------------------------------------
+# Roles, highest first. The order here becomes the role hierarchy.
+# None of these roles receives the "administrator" flag: a bot can only grant
+# permissions it has itself, and Nexdir's bot deliberately never has Administrator.
+# The server owner can add that flag manually if wanted.
+# ---------------------------------------------------------------------------
+
+[[roles]]
+name = "Founder"
+group = "team"
+color = "#5B5BF7"
+hoist = true
+permissions = [
+  "manage_guild", "manage_roles", "manage_channels", "view_audit_log", "manage_webhooks",
+  "manage_expressions", "manage_events", "kick_members", "ban_members", "moderate_members",
+  "manage_messages", "manage_threads", "manage_nicknames", "mention_everyone", "pin_messages",
+]
+
+[[roles]]
+name = "Administrator"
+group = "team"
+color = "#4F4FE6"
+hoist = true
+permissions = [
+  "manage_guild", "manage_roles", "manage_channels", "view_audit_log", "manage_webhooks",
+  "manage_expressions", "manage_events", "kick_members", "ban_members", "moderate_members",
+  "manage_messages", "manage_threads", "manage_nicknames", "pin_messages",
+]
+
+[[roles]]
+name = "Moderator"
+group = "team"
+color = "#12B5D6"
+hoist = true
+permissions = ["kick_members", "ban_members", "moderate_members", "manage_messages", "manage_threads", "manage_nicknames", "view_audit_log", "pin_messages"]
+
+[[roles]]
+name = "Core Developer"
+group = "team"
+color = "#2F9E6E"
+hoist = true
+permissions = ["manage_threads", "pin_messages"]
+
+[[roles]]
+name = "Developer"
+group = "team"
+color = "#4FC58F"
+hoist = true
+permissions = ["manage_threads"]
+
+[[roles]]
+name = "Support Team"
+group = "team"
+color = "#E3A84A"
+hoist = true
+permissions = ["manage_threads", "pin_messages"]
+
+[[roles]]
+name = "Contributor"
+group = "community"
+color = "#A984EC"
+hoist = true
+permissions = []
+
+[[roles]]
+name = "Beta Tester"
+group = "community"
+color = "#E173AD"
+permissions = []
+
+[[roles]]
+name = "Member"
+group = "community"
+permissions = []
+
+# Notification roles: self-assignable, mentionable so announcements can ping them.
+[[roles]]
+name = "Release Notifications"
+group = "notification"
+mentionable = true
+permissions = []
+
+[[roles]]
+name = "Beta Updates"
+group = "notification"
+mentionable = true
+permissions = []
+
+[[roles]]
+name = "Development News"
+group = "notification"
+mentionable = true
+permissions = []
+
+# Interest roles: self-assignable, never carry permissions.
+[[roles]]
+name = "Interested: Development"
+group = "interest"
+permissions = []
+
+[[roles]]
+name = "Interested: Beta Testing"
+group = "interest"
+permissions = []
+
+[[roles]]
+name = "Interested: Community Support"
+group = "interest"
+permissions = []
+
+[[roles]]
+name = "Interested: Documentation"
+group = "interest"
+permissions = []
+
+[[roles]]
+name = "Interested: Translation"
+group = "interest"
+permissions = []
+
+[[roles]]
+name = "Interested: Moderation"
+group = "interest"
+permissions = []
+
+# ---------------------------------------------------------------------------
+# Categories and channels.
+#   read_only = true   -> everyone can read, only `writers` can post
+#   private = true     -> hidden from @everyone; each channel lists `visible_to`
+#   moderators         -> roles that may manage posts/threads in this channel
+#   template           -> info text in templates/<name>.md (published only on request)
+# ---------------------------------------------------------------------------
+
+[[categories]]
+name = "INFORMATION"
+
+[[categories.channels]]
+name = "welcome"
+type = "text"
+topic = "Welcome to the official Nexdir community."
+read_only = true
+writers = ["Founder", "Administrator"]
+template = "welcome"
+
+[[categories.channels]]
+name = "rules"
+type = "text"
+topic = "Community rules. Please read them before posting."
+read_only = true
+writers = ["Founder", "Administrator"]
+template = "rules"
+
+[[categories.channels]]
+name = "announcements"
+type = "text"
+topic = "Official Nexdir announcements."
+read_only = true
+writers = ["Founder", "Administrator", "Core Developer"]
+
+[[categories.channels]]
+name = "releases"
+type = "text"
+topic = "New Nexdir versions and release notes."
+read_only = true
+writers = ["Founder", "Administrator", "Core Developer"]
+
+[[categories.channels]]
+name = "resources"
+type = "text"
+topic = "Official links: GitHub, downloads, documentation and support."
+read_only = true
+writers = ["Founder", "Administrator"]
+template = "resources"
+
+[[categories]]
+name = "COMMUNITY"
+
+[[categories.channels]]
+name = "general"
+type = "text"
+topic = "General discussion about Nexdir."
+
+[[categories.channels]]
+name = "showcase"
+type = "text"
+topic = "Screenshots, setups and experiences with Nexdir."
+
+[[categories.channels]]
+name = "off-topic"
+type = "text"
+topic = "Anything that is not about Nexdir. Keep it friendly."
+
+[[categories]]
+name = "SUPPORT & FEEDBACK"
+
+[[categories.channels]]
+name = "support"
+type = "forum"
+topic = "Ask for help with Nexdir. One post per question. Never share personal data, passwords or private files."
+moderators = ["Support Team", "Moderator"]
+tags = ["Open", "Solved", "Needs Info"]
+template = "support-guide"
+
+[[categories.channels]]
+name = "bug-reports"
+type = "forum"
+topic = "Report bugs: Nexdir version, Windows version, steps, expected vs. actual behaviour. Security issues: report privately via GitHub Security Advisories."
+moderators = ["Support Team", "Moderator", "Core Developer", "Developer"]
+tags = ["Open", "Investigating", "Confirmed", "Needs Info", "Fixed", "Closed"]
+template = "bug-report-guide"
+
+[[categories.channels]]
+name = "feature-requests"
+type = "forum"
+topic = "Suggest improvements. Search first, one idea per post."
+moderators = ["Moderator", "Core Developer", "Developer"]
+tags = ["Suggestion", "Under Review", "Planned", "In Progress", "Implemented", "Declined"]
+template = "feature-request-guide"
+
+[[categories]]
+name = "DEVELOPMENT"
+
+[[categories.channels]]
+name = "development-chat"
+type = "text"
+topic = "Public technical discussion. Decisions are documented on GitHub."
+
+[[categories.channels]]
+name = "contribution-help"
+type = "text"
+topic = "Questions about pull requests, builds and contributing."
+template = "contribution-guide"
+
+[[categories.channels]]
+name = "github-updates"
+type = "text"
+topic = "Automated GitHub activity."
+read_only = true
+writers = ["Founder", "Administrator", "Core Developer"]
+
+[[categories.channels]]
+name = "roadmap"
+type = "text"
+topic = "Planned features and milestones."
+read_only = true
+writers = ["Founder", "Administrator", "Core Developer"]
+
+[[categories.channels]]
+name = "development-ideas"
+type = "forum"
+topic = "Technical proposals. Describe the problem, the idea and alternatives."
+moderators = ["Core Developer", "Moderator"]
+tags = ["Proposal", "Discussion", "Accepted", "Rejected"]
+
+[[categories]]
+name = "TEAM"
+private = true
+
+[[categories.channels]]
+name = "team-general"
+type = "text"
+topic = "Team coordination."
+visible_to = ["Founder", "Administrator", "Moderator", "Core Developer", "Developer", "Support Team"]
+
+[[categories.channels]]
+name = "developer-internal"
+type = "text"
+topic = "Internal developer coordination (security fixes before disclosure, release prep)."
+visible_to = ["Founder", "Administrator", "Core Developer", "Developer"]
+
+[[categories.channels]]
+name = "support-internal"
+type = "text"
+topic = "Support team coordination."
+visible_to = ["Founder", "Administrator", "Moderator", "Support Team"]
+
+[[categories.channels]]
+name = "moderation"
+type = "text"
+topic = "Moderation cases."
+visible_to = ["Founder", "Administrator", "Moderator"]
+
+[[categories.channels]]
+name = "staff-applications"
+type = "text"
+topic = "Review of team applications. Applications are never accepted automatically."
+visible_to = ["Founder", "Administrator", "Core Developer"]
+template = "team-applications"
+
+[[categories.channels]]
+name = "mod-logs"
+type = "text"
+topic = "Moderation log."
+visible_to = ["Founder", "Administrator", "Moderator"]
+read_only = true
+writers = ["Founder", "Administrator"]

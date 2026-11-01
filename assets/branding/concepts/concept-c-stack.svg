@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Concept C (alternative, not selected): stacked folder layers suggesting organised structure. -->
+  <defs>
+    <linearGradient id="c-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B5BF7"/>
+      <stop offset="1" stop-color="#12B5D6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#c-bg)"/>
+  <rect x="312" y="272" width="400" height="300" rx="44" fill="#fff" opacity="0.45"/>
+  <rect x="272" y="352" width="480" height="340" rx="48" fill="#fff" opacity="0.7"/>
+  <path d="M276 432 H400 Q424 432 440 452 L462 480 H700 Q752 480 752 532 V700 Q752 752 700 752 H324 Q272 752 272 700 V436 Z" fill="#fff"/>
+</svg>

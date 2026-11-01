@@ -1,0 +1,54 @@
+[package]
+name = "nexdir"
+version = "0.4.3"
+description = "A modern, intelligent, open-source file manager for Windows."
+authors = ["Nexdir contributors"]
+license = "MIT"
+repository = "https://github.com/Kervent/nexdir"
+homepage = "https://github.com/Kervent/nexdir"
+edition = "2021"
+rust-version = "1.88"
+
+[lib]
+name = "nexdir_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.5", features = [] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+dirs = "7.0.0"
+base64 = "0.23.1"
+blake3 = "1.8.7"
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+tauri-plugin-window-state = "2.5.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_IO",
+    "Win32_System_Environment",
+    "Win32_System_Registry",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "unwind"
+strip = true

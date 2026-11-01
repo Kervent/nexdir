@@ -1,0 +1,283 @@
+# Nexdir 0.4.3 — implementation and release-readiness report
+
+Date: 2026-11-01 · Tested on: Windows 11 Pro 26H2 (build 26300.9711), x64, NTFS SSD, German
+locale, one PC · Nothing was committed, tagged, signed or published.
+
+## Result: **ALPHA READY**
+
+0.4.3 adds the first-start tour, Help & Support, in-app bug reports and feature requests, and moves
+the duplicate finder's "keep one copy" rule into the backend. Every automated suite is green, the
+built app passed the GUI test 42/42 in three runs (one further run failed one step because of a
+test-script timing bug, fixed and re-run), and the installer was really installed, updated,
+uninstalled and reinstalled on this PC. The reasons it stays **alpha** and is not beta are listed
+in section 14.
+
+## 1. Implemented
+
+| Feature | What it does |
+|---|---|
+| First-start tour | Welcome dialog (*Start Tutorial* / *Skip for Now*) on the first start. Five steps over the real interface — navigation, tabs and split view, file operations, smart tools, personalization — plus *You're ready to explore Nexdir!* / *Get Started*. Highlights real elements (`data-tour` attributes), progress text and dots, back/next, skip at any time, ←/→/Esc from anywhere, Tab stays in the card, focus moves to the main button, screen-reader announcement per step, no animation with reduced motion, re-measured on resize/scroll, highlights clipped to the window, steps whose elements are hidden fall back to a centred card. File operations are only described (a static explanation) — the tour never touches files. State in WebView storage (`nexdir.onboarding.v1`: tour version, offered/skipped/completed, times), separate from preferences, never sent anywhere. Restart: *Help → Take a Tour*. |
+| Help menu | Question-mark button in the toolbar: Help & Support, Take a Tour, Keyboard shortcuts (F1), Documentation, Report a Bug…, Request a Feature…, GitHub Repository, Discord Community, About Nexdir. It replaces the separate shortcut and About buttons. |
+| Help & Support center | Cards for all of the above plus offline help bundled with the app: navigation, file operations, search, duplicate files, storage analysis, organize rules, keyboard shortcuts, common problems. |
+| Links | `src/config/links.ts`: repository, issues, releases, docs (`…/tree/main/docs`), issue forms. Discord invite from the build variable `VITE_NEXDIR_DISCORD_INVITE` (release workflow: repository variable `NEXDIR_DISCORD_INVITE`); not set → the Discord entry is shown disabled with an explanation. No invite link was invented. Backend command `open_url` opens only the repository URL tree and Discord invites, after a click. |
+| Report a Bug | Form: title, what happened, steps, expected, actual, data loss (the GitHub form requires it), optional extra. Review screen: Nexdir version, Windows version and architecture (read locally by `system_info`, each can be unticked), privacy notice listing what was replaced, exact preview of what GitHub will receive, *Copy report*, *Open GitHub*. Opens the prefilled issue form (`?template=bug_report.yml&<field-id>=…`); above 6,000 characters the report goes to the clipboard and only the title is prefilled. Nothing is sent by Nexdir; the issue exists only if the user submits it on GitHub. |
+| Privacy filter | Replaces drive/UNC/profile paths, the Windows user name (from the profile path), e-mail addresses, GitHub/Discord/Slack/AWS/JWT/`sk-` tokens, private key blocks, `password:`/`token=`-style values and Bearer tokens with placeholders. Ordinary words ("the secret folder") are kept. No logs are attached (Nexdir keeps none). |
+| Request a Feature | Same flow with feature title, problem description, proposed solution, expected benefit, additional context; own issue form. |
+| Duplicate-removal guard (backend) | New command `recycle_duplicates` (`operations/dedupe.rs`): refuses groups without a kept copy; locks one kept copy (read-only sharing), checks it is a regular file and re-hashes it; checks every file to remove (exists, regular file, not the kept file under another name, same size and full BLAKE3); skips and reports changed, missing, linked or locked files; serialises requests. The duplicates view uses only this command and no longer offers the generic *Move to Recycle Bin* context entry. Details: [duplicate-removal.md](../security/duplicate-removal.md). |
+| Hard links in the scanner | Further names of a file already in a size group are skipped while hashing (identity from the handle opened for hashing). |
+| Version | 0.4.3 in `package.json`, `package-lock.json`, `Cargo.toml`/`Cargo.lock`, `tauri.conf.json`; exe, installer and MSI version resources 0.4.3; About shows 0.4.3. |
+
+## 2. Changed files
+
+Backend: `src-tauri/src/operations/dedupe.rs` (new), `operations/mod.rs`, `analytics/duplicates.rs`,
+`commands/mod.rs`, `commands/tools.rs`, `lib.rs`, `platform/win32.rs` (`open_url`, `os_version`),
+`security/mod.rs` (`validate_external_url`), `build.rs`, `capabilities/main.json`,
+`permissions/autogenerated/{open_url,recycle_duplicates,system_info}.toml` (generated),
+`Cargo.toml`, `Cargo.lock`, `tauri.conf.json`.
+
+Frontend: `src/features/onboarding/{onboarding.ts,Tour.tsx,onboarding.test.tsx}` (new),
+`src/features/help/{HelpCenter.tsx,IssueDialog.tsx,report.ts,report.test.ts}` (new),
+`src/config/links.ts` (new), `src/app/App.tsx`, `src/app/App.test.tsx`,
+`src/components/Dialog.tsx` (wide variant; textarea/summary/link in the focus trap),
+`src/features/tools/{DuplicatesView.tsx,shared.tsx}`, `src/features/navigation/Sidebar.tsx`,
+`src/features/workspace/TabBar.tsx`, `src/features/explorer/ExplorerPane.tsx` (`data-tour`
+markers), `src/services/api.ts`, `src/types/tools.ts`, `src/env.d.ts`, `src/styles/global.css`,
+`package.json`, `package-lock.json`.
+
+Repository and docs: `.github/ISSUE_TEMPLATE/{bug_report,feature_request}.yml`,
+`.github/workflows/release.yml`, `README.md`, `CHANGELOG.md`, `SUPPORT.md`, `docs/README.md`,
+`docs/ROADMAP.md`, `docs/architecture/overview.md`, `docs/development/performance.md`,
+`docs/release/{checklist.md,process.md,notes-0.4.3.md}`, `docs/security/duplicate-removal.md`,
+this report.
+
+## 3. Architecture decisions
+
+- **No new design system, no new dependencies.** The tour, Help center and forms reuse `Dialog`,
+  `ContextMenu`, buttons, fields, notices, tokens and lucide icons.
+- **Data-driven tour over real elements.** Steps name `data-tour` markers instead of
+  coordinates; positions are measured live. A missing element degrades to a centred card.
+- **Tour state separate from preferences** with a version number: a redesign can bump
+  `TOUR_VERSION` without touching settings.
+- **No settings page.** The app has none yet, so *Settings → General → Restart Tutorial* was not
+  added (it was optional); the tour restarts from Help. Listed in the roadmap.
+- **GitHub issue forms instead of an API.** No token, no backend; the user submits on GitHub.
+  Field ids of the in-app forms and the YAML forms are kept in sync and checked by a test.
+- **Links through a narrow backend command** rather than a general opener/shell plugin; the
+  capability file still exposes no generic shell or filesystem access.
+- **Guard in the backend, verified against the file system** rather than trusting the scan
+  result: the backend re-hashes, locks the kept copy and compares file identities.
+
+## 4. Frontend tests
+
+`npx tsc --noEmit`: no errors. `npx vitest run`: **111/111** passed in 9 files (68 before; 43 new):
+
+- `onboarding.test.tsx` (13): offer/skip/complete persistence, new tour version without touching
+  preferences, damaged storage, step list, card placement never outside the window (4 window
+  sizes × 4 anchors), forward/back/finish, missing target → hint instead of crash, keyboard
+  (←/→/Esc, Tab wrap), focus taken from elsewhere, skip at any step, resize re-measures and hidden
+  elements lose their highlight, screen-reader text and progress.
+- `report.test.ts` (17): validation (required, length, choices), path/UNC/profile redaction keeping
+  the sentence, drive letters kept, user name/e-mail/secret redaction, ordinary words not treated
+  as secrets, Discord token and key blocks, URL encoding (Unicode, `&`, `+`, `#`, `?`), unticked
+  details left out, clipboard fallback for long reports, feature template, every form field id
+  present in the GitHub YAML forms, Discord invite configuration.
+- `App.test.tsx` (13 new): duplicates send keep/remove lists to `recycle_duplicates` and never
+  `recycle_entries`; all copies selected → disabled, context menu without delete; first start,
+  skip persists across restart, Esc = skip, full tour over the app with all markers present and
+  app shortcuts paused, restart from Help; Help center offline topics, Discord disabled, links only
+  after a click, browser error handled; bug report validation, version facts, redaction, unticking,
+  prefilled URL, cancel sends nothing, long report via clipboard; feature request URL.
+
+## 5. Rust tests
+
+Commands: `cargo fmt --check` (clean), `cargo clippy --release --all-targets -D warnings` (clean),
+`cargo test --release --target-dir src-tauri/target-perf` (a separate target folder, so the
+release build output is never overwritten by a test build).
+
+| Suite | Result |
+|---|---|
+| Library tests | **119 passed**, 0 failed, 6 ignored (100 in 0.4.2; 19 new) |
+| Ignored tests that use the real Recycle Bin (`recycles_a_temp_file`, `real_recycle_bin_with_handles_held`) | **2/2** passed — two synthetic files are now in this PC's Recycle Bin |
+| Benchmarks (ignored by default) | **4/4** passed |
+| Data-safety tests (`safe_copy`, `transfer`, `dedupe`, `store`: 62 tests) repeated 20× | **0 failures** in 20 runs |
+| Symbolic-link test | skips itself: this account cannot create symbolic links (no Developer Mode); junctions are tested |
+
+## 6. Windows GUI tests (built app)
+
+The portable `Nexdir.exe` from the final release ZIP (byte-identical to the build output) was
+started with WebView2 remote debugging and driven with real mouse and keyboard events through
+the DevTools protocol (test script kept outside the repository). The existing WebView profile was moved
+aside, so the first start was real, and restored afterwards. Synthetic data only.
+
+**Final build: 42/42, 42/42, 42/42** (plus one 41/42 run: the conflict step pasted before the
+test's navigation had finished — the test waited for a file name that exists in both folders;
+fixed in the script, then the two later runs passed). Highlights:
+
+| Check | Result |
+|---|---|
+| First start | welcome after ~1.2–1.3 s, focus on *Start Tutorial*, no stray input |
+| Tour | 5 steps with 1–2 highlights each, card and highlights inside the window, focus on Next; Back/←/→ work; *Get Started* stores `completed` |
+| Window sizes, DPI, themes | 20 layouts (720×460 light, 1240×780 @150 % dark, 900×600 @200 % dark, 560×420 dark) — 0 outside the window (viewport emulated by DevTools, not a real resize) |
+| Reduced motion | animation `none`, transition `0s` |
+| Restart | no welcome after completion; *Help → Take a Tour* restarts it |
+| Help menu / center | 9 entries, Discord disabled; 8 offline topics; links only after a click |
+| Links | *Documentation* and *GitHub Repository* produce the right addresses (answered by the test instead of opening the browser, see 9); 5 foreign addresses sent to the real backend were refused |
+| Bug report | 6 validation messages; real Windows version shown; path, e-mail and token replaced; no test path, user name or secret in preview or URL; prefilled URL 437 characters |
+| Long report | clipboard holds the 8,427-character report; title-only link; Cancel opens nothing |
+| Duplicates | all copies selected → disabled + warning; three manipulated direct `recycle_duplicates` calls (no kept copy, same path kept and removed in another case, wrong hash) → 0 removed, both files kept; normal removal through the UI moved exactly one synthetic copy to the Recycle Bin |
+| Regression | theme, navigation, views, 20,000-file folder (84–111 ms, 40 DOM rows), scroll, sort, filter, 10× reopen, tabs, split view, preview, rename error, address error, new folder, conflict → Replace, 3 GiB copy with UI responsive and cancel leaving the target empty, search, storage analysis, F1, About 0.4.3 |
+| Stability | no console errors or warnings, no reloads, no crash, clean exit (≈0.84 s), second run clean |
+
+## 7. Installer tests
+
+Run on this PC, per-user installer, no administrator rights (no VM or Windows Sandbox was
+available). The user's Nexdir data folders were moved aside and restored afterwards; the PC was
+left without Nexdir installed. The test scripts are kept outside the repository.
+
+| Test | Result |
+|---|---|
+| Fresh install of 0.4.2 (`/S`) | exit 0, ~1.1 s, no elevation prompt |
+| **Update 0.4.2 → 0.4.3** over the installation | exit 0; exe 0.4.3; **one** uninstall entry, DisplayVersion 0.4.3 |
+| Settings after the update | theme, view and pinned folder written by 0.4.2 are kept; the welcome tour is offered once (new for existing users, as intended) |
+| Files | `%LOCALAPPDATA%\Nexdir\nexdir.exe`, `uninstall.exe` |
+| Shortcuts | Start menu `Nexdir.lnk` → installed exe; desktop shortcut |
+| Permissions | owner = user; full control for the user, SYSTEM, Administrators and the WebView2 app-container SID; no write access for other users |
+| Start after install / update / reinstall | starts, `system_info` reports 0.4.3, closes with exit 0 |
+| Silent uninstall | program folder, shortcuts and uninstall entry removed; settings and WebView data **kept**; `HKCU\Software\Nexdir contributors\Nexdir` (install path) kept — Tauri default |
+| Reinstall | settings from before are used again |
+| **Interactive uninstall with "Delete the application data"** | program, `%APPDATA%\org.nexdir.desktop`, `%LOCALAPPDATA%\org.nexdir.desktop`, uninstall entry and the `HKCU\Software\Nexdir contributors` key removed |
+| MSI | administrative extraction only (`msiexec /a`): contains `nexdir.exe` 0.4.3. **Not installed** — the MSI installs per machine and needs administrator rights |
+
+What stays after uninstall: with the default (silent or unticked) — settings
+(`%APPDATA%\org.nexdir.desktop`), WebView data incl. preferences and tour state
+(`%LOCALAPPDATA%\org.nexdir.desktop`) and one registry value with the install path. With *Delete
+the application data* ticked — nothing of the above.
+
+## 8. Duplicate-guard verification
+
+- 17 Rust tests in `operations::dedupe` (2 and 5 copies, all selected, kept/removed overlap by
+  case, kept copy changed, fallback keeper, removed copies changed in content or size, already
+  deleted, missing keeper, invalid hash/wrong hash/wrong size/empty request, hard link of the kept
+  file, junction as keeper and as removal, symbolic link (skipped here), failing and silently
+  failing Recycle Bin, kept copy locked against rename/delete/write during the operation, 20 × two
+  opposite parallel requests → exactly one copy removed every time, independent groups) and one
+  real-Recycle-Bin test with handles held.
+- Scanner: new test that hard links are not reported and a real copy next to them is.
+- GUI: manipulated direct IPC calls refused in the built app; UI cannot remove all copies; the
+  context menu offers no unguarded delete there.
+- Remaining path-based window, documented in [duplicate-removal.md](../security/duplicate-removal.md):
+  between verification and the Recycle Bin call, another program could rename a verified file and
+  put a different one at its path; that file would go to the Recycle Bin (restorable). The kept copy
+  is locked and cannot be affected. Outside the duplicates view, deleting files is an ordinary
+  operation and can of course remove every copy one by one.
+
+## 9. Problems found and fixed
+
+| Problem | Fix |
+|---|---|
+| The tour card is invisible until placed; the first focus call failed, so Esc/←/→ did not reach the tour after starting it from the Help menu (GUI test) | Focus moves once the card is placed; Esc/←/→ handled at window level while the tour is open; unit test added |
+| Privacy filter treated "Secret Folder" as a secret (`secret` + any word) | Only `key: value` / `key=value` forms and `Bearer` tokens count; test with ordinary words |
+| Path filter swallowed the rest of the sentence after a path | Folder names may contain spaces but not end with one; the last part ends at a space |
+| Duplicate scan opened every candidate a second time for hard-link detection: 50,000 small files 5.2 s | Identity read from the hashing handle, hard links skipped before reading: 3.4–3.8 s |
+| Fake private-key string in a test matched secret scanners | Built at run time |
+| **Test incident:** two test-script attempts to intercept `open_url` did not work (Tauri's `invoke` is read-only; CDP request interception does not see `ipc.localhost`). In those runs the built app **opened GitHub pages in the default browser** — up to 4 in one run (docs, repository, two prefilled bug forms) and 2 in another (prefilled bug forms). They contained only synthetic test text; no issue is created without a click on Submit. | The final script wraps the page's `fetch`, proves the interception on the harmless `system_info` command first and refuses to click any link otherwise. The real browser launch itself therefore was exercised only by these accidental runs. |
+| Test-script issues (profile restore skipped by an early `process.exit`, Stop-Process exit code, wait condition satisfied by the wrong folder, PowerShell 5.1 file encoding) | Fixed in the scripts; the user's WebView profile was restored each time (checked) |
+
+## 10. Known limitations
+
+- Tested on one PC only: Windows 11, NTFS, SSD, German locale. **Not tested:** Windows 10, FAT/exFAT
+  and USB drives, network shares, real high-DPI monitors (DPI only emulated), screen readers (ARIA
+  structure tested, no NVDA/Narrator run), a real window resize below the 720×460 minimum.
+- Release files are **not code-signed** (SmartScreen warning).
+- No Discord invite configured; the entry is disabled until the owner sets `NEXDIR_DISCORD_INVITE`.
+- The GitHub repository is not public yet: all links point to `github.com/Kervent/nexdir` but
+  will return 404 until it is published. GitHub's issue-form prefill is used as documented
+  (`template`, `title`, field ids); it was not checked against the live repository.
+- No settings page, so *Restart Tutorial* lives only in the Help menu and Help center.
+- The silent installer always creates a desktop shortcut; the uninstaller keeps one registry value
+  (Tauri defaults, unchanged since 0.4.0).
+- MSI not installed (needs administrator rights).
+- Right after the last GUI step (bug-report flow) the WebView process used ~2.3–2.7 CPU-seconds in
+  10 s in three of four runs (0.16 in one); 20 s later 0.02–0.19. `nexdir.exe` itself ≈0. A targeted
+  probe of each new screen showed no idle load, so the cause is unclear; it settles on its own.
+- `nexdir.exe` working set 28 MB at start, 42 MB after the full test (including the Recycle Bin
+  shell operation and a 3 GiB copy); JS heap 4 → 10 MB. Not a measured leak (10× reopening of the
+  big folder: no growth), but larger than 0.4.2's run, which had fewer steps.
+- Not crash-proof (see [safe-copy.md](../security/safe-copy.md)); no external security audit.
+
+## 11. Performance impact
+
+| Measurement | 0.4.2 | 0.4.3 |
+|---|---|---|
+| Start until window ready / welcome | ~0.5 s | welcome after 1.2–1.3 s on a fresh WebView profile (profile creation included) |
+| 20,000-file folder | 85 ms | 84–111 ms |
+| `list_dir` 20,000 entries (backend) | 13 ms | 12 ms |
+| Storage analysis / live search, 50,000 files | 76 / 89 ms | 107–111 / 121–125 ms (same code; run-to-run variation on this PC) |
+| Index build / query | 0.5 s / 5 ms | 0.67–0.79 s / 6.6–7.5 ms |
+| Duplicate scan, 50,000 small files | 2.6 s | 3.4–3.8 s (hard-link detection) |
+| Copy 5,000 small files / replace 1,000 / replace 256 MiB | 4.3 s / 2.8 s / 0.28 s | 4.5 s / 2.6 s / 0.33 s |
+| Removing duplicates | — | every kept and removed file is read once more (re-verification) |
+| Idle CPU (nexdir.exe) | 0 | 0 |
+| Release exe | — | 8.45 MB |
+
+## 12. Release files (local, `release-out/`)
+
+Built from scratch (`npm ci`, `cargo clean --release` — 3,298 files / 1.6 GiB removed — then
+`tauri build` and `tools/release/package.ps1`; Rust compile 2 min 17 s). No source file is newer
+than the build. Version 0.4.3 in exe, installer and MSI; app icon unchanged (logo concept A);
+not signed.
+
+| File | Size |
+|---|---|
+| `Nexdir-0.4.3-Setup.exe` | 2,507,838 bytes |
+| `Nexdir-0.4.3.msi` | 3,448,832 bytes |
+| `Nexdir-0.4.3-Portable.zip` | 3,136,509 bytes |
+| `SHA256SUMS.txt` | 264 bytes |
+
+## 13. SHA-256
+
+> **Superseded for publication:** the published release files were rebuilt from the exact
+> repository state after `THIRD-PARTY-NOTICES.txt` was added to the installers and the portable
+> ZIP. Their checksums are in `SHA256SUMS.txt` on the GitHub release page. The checksums below
+> belong to the build tested in this report.
+
+```text
+e6308ca2872abcd2f262b08b7e56a407efb185c53c0baa9f0c7cd161a1a6ff24  Nexdir-0.4.3-Setup.exe
+29c311f88b9ee5052a52485c66f3c25c98edb7ed2a2f24a2995f05b56f3d0ee6  Nexdir-0.4.3.msi
+e22b2597c7ae5198cea4520911a4f7cdf5a5a634a3d58ea9224ac5eb09db702a  Nexdir-0.4.3-Portable.zip
+```
+
+Checked independently with `sha256sum` against `SHA256SUMS.txt`.
+
+## Audits
+
+`npm audit`: 0 vulnerabilities. `cargo audit`: 0 vulnerabilities, the same 2 allowed warnings as
+before (`proc-macro-error`, `glib` — Linux-only GTK stack, not in the Windows dependency tree).
+`pip-audit` (cached copy via `uvx --offline`) for `tools/discord-setup` and `tools/discord-notify`
+requirement files: no known vulnerabilities. Discord tools: 41/41 and 70/70 tests. Secret scan of
+291 project files: no secrets in files that would be published; real Discord server IDs appear
+only in the setup tool's local exports and reports, which are git-ignored.
+
+## 14. Release readiness: **ALPHA READY**
+
+Why it is ready for an alpha:
+- every feature asked for is implemented and covered by unit tests and a GUI test of the built app;
+- the duplicate-removal rule is enforced and verified in the backend, including manipulated calls;
+- install, update with settings kept, uninstall (both variants) and reinstall work on this PC;
+- clean build, all suites green, audits clean, no secrets in published files.
+
+Why it is not BETA READY:
+- tested on a single Windows 11 PC; Windows 10, other file systems, network drives, real high-DPI
+  screens and screen readers are untested;
+- unsigned binaries;
+- the public repository and Discord invite do not exist yet, so every external link is unverified
+  end to end;
+- the MSI was not installed;
+- no external review of the safety-critical code.
+
+## Owner decisions still open
+
+1. Publish the repository and set `NEXDIR_DISCORD_INVITE` (then post the Discord info texts).
+2. Tag `v0.4.3` and publish the draft as a pre-release.
+3. Code signing.
+4. Optionally: a Windows 10 / VM test round using [the checklist](../release/checklist.md).

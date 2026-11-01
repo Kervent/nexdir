@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Kervent/nexdir/security/advisories/new
+    about: Please report vulnerabilities privately, never in public issues.
+  - name: Ask a question or get help
+    url: https://github.com/Kervent/nexdir/blob/main/SUPPORT.md
+    about: Usage questions are answered fastest in the Nexdir Discord #support forum.

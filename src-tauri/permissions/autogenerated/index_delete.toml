@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-index-delete"
+description = "Enables the index_delete command without any pre-configured scope."
+commands.allow = ["index_delete"]
+
+[[permission]]
+identifier = "deny-index-delete"
+description = "Denies the index_delete command without any pre-configured scope."
+commands.deny = ["index_delete"]

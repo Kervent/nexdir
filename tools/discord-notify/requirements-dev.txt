@@ -1,0 +1,2 @@
+# The tool itself needs only the Python standard library. This is for the tests.
+pytest==9.2.0

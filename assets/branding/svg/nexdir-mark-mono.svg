@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="220 280 584 484" width="584" height="484">
+  <!-- Nexdir symbol, single colour (inherits currentColor). The chevron is cut out via mask. -->
+  <defs>
+    <mask id="nxmono-cut">
+      <rect x="0" y="0" width="1024" height="1024" fill="#fff"/>
+      <path d="M470 452 L574 548 L470 644" fill="none" stroke="#000" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path mask="url(#nxmono-cut)" fill="currentColor"
+        d="M284 292 H418 Q446 292 464 313 L494 348 H740 Q792 348 792 400 V700 Q792 752 740 752 H284 Q232 752 232 700 V344 Q232 292 284 292 Z"/>
+</svg>

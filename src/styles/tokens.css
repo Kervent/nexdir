@@ -1,0 +1,196 @@
+/*
+ * Nexdir design tokens. Every colour, size and radius used by the UI comes from here.
+ * Brand colours are derived from the official logo gradient (#5B5BF7 → #12B5D6).
+ * Light theme is the default; dark theme is applied either by the system preference
+ * (theme = "system") or explicitly via <html data-theme="dark">.
+ */
+:root {
+  /* Brand */
+  --nx-brand-indigo: #5b5bf7;
+  --nx-brand-cyan: #12b5d6;
+  --nx-brand-gradient: linear-gradient(135deg, var(--nx-brand-indigo), var(--nx-brand-cyan));
+
+  /* Primary (interactive accent) */
+  --nx-primary: #4f4fe6;
+  --nx-primary-hover: #4343d4;
+  --nx-primary-active: #3838bd;
+  --nx-on-primary: #ffffff;
+  /* Secondary accent */
+  --nx-secondary: #0e9fbd;
+
+  /* Surfaces */
+  --nx-bg: #f6f7fb;
+  --nx-surface: #ffffff;
+  --nx-surface-raised: #ffffff;
+  --nx-sidebar: #eef0f7;
+  --nx-overlay: rgba(15, 18, 32, 0.4);
+
+  /* Text */
+  --nx-text: #171a2b;
+  --nx-text-muted: #5a6080;
+  --nx-text-subtle: #8a90ad;
+  --nx-text-disabled: #b4b8cc;
+
+  /* Borders */
+  --nx-border: #dfe2ee;
+  --nx-border-strong: #c7cbdd;
+  --nx-divider: #e9ebf3;
+
+  /* Interaction states */
+  --nx-hover: rgba(79, 79, 230, 0.07);
+  --nx-pressed: rgba(79, 79, 230, 0.13);
+  --nx-selected: rgba(79, 79, 230, 0.14);
+  --nx-selected-hover: rgba(79, 79, 230, 0.2);
+  --nx-focus-ring: #4f4fe6;
+
+  /* Status */
+  --nx-success: #1a8f5a;
+  --nx-warning: #b7791f;
+  --nx-danger: #d0364b;
+  --nx-danger-hover: #b52b3e;
+  --nx-info: #0e86a8;
+
+  /* File-type icon colours */
+  --nx-icon-folder: #e8a93a;
+  --nx-icon-image: #2f9e6e;
+  --nx-icon-video: #c84d8f;
+  --nx-icon-audio: #8a5cd6;
+  --nx-icon-archive: #b7791f;
+  --nx-icon-code: #2f7dd1;
+  --nx-icon-doc: #4f4fe6;
+  --nx-icon-file: #7a809e;
+
+  /* Typography */
+  --nx-font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --nx-font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --nx-font-mono: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+  --nx-text-xs: 11px;
+  --nx-text-sm: 12px;
+  --nx-text-md: 13px;
+  --nx-text-lg: 15px;
+  --nx-text-xl: 20px;
+  --nx-text-2xl: 26px;
+  --nx-weight-regular: 400;
+  --nx-weight-medium: 500;
+  --nx-weight-semibold: 600;
+
+  /* Spacing (4px grid) */
+  --nx-space-1: 4px;
+  --nx-space-2: 8px;
+  --nx-space-3: 12px;
+  --nx-space-4: 16px;
+  --nx-space-5: 20px;
+  --nx-space-6: 24px;
+  --nx-space-8: 32px;
+
+  /* Radii */
+  --nx-radius-sm: 4px;
+  --nx-radius-md: 6px;
+  --nx-radius-lg: 8px;
+  --nx-radius-xl: 12px;
+
+  /* Icon sizes */
+  --nx-icon-sm: 16px;
+  --nx-icon-md: 20px;
+  --nx-icon-lg: 32px;
+  --nx-icon-xl: 48px;
+
+  /* Layout */
+  --nx-sidebar-width: 232px;
+  --nx-toolbar-height: 48px;
+  --nx-statusbar-height: 28px;
+  --nx-row-height: 30px;
+
+  /* Elevation */
+  --nx-shadow-sm: 0 1px 2px rgba(15, 18, 32, 0.08);
+  --nx-shadow-md: 0 4px 16px rgba(15, 18, 32, 0.12);
+  --nx-shadow-lg: 0 12px 40px rgba(15, 18, 32, 0.22);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --nx-primary: #8183ff;
+    --nx-primary-hover: #9496ff;
+    --nx-primary-active: #6f71f0;
+    --nx-on-primary: #0f1220;
+    --nx-secondary: #3cc8e4;
+    --nx-bg: #0f1220;
+    --nx-surface: #161a2c;
+    --nx-surface-raised: #1d2238;
+    --nx-sidebar: #12152a;
+    --nx-overlay: rgba(0, 0, 0, 0.55);
+    --nx-text: #eceef8;
+    --nx-text-muted: #a3a9c7;
+    --nx-text-subtle: #737a9c;
+    --nx-text-disabled: #4c5272;
+    --nx-border: #2a3050;
+    --nx-border-strong: #3a4168;
+    --nx-divider: #222842;
+    --nx-hover: rgba(129, 131, 255, 0.09);
+    --nx-pressed: rgba(129, 131, 255, 0.16);
+    --nx-selected: rgba(129, 131, 255, 0.2);
+    --nx-selected-hover: rgba(129, 131, 255, 0.27);
+    --nx-focus-ring: #9496ff;
+    --nx-success: #41c38a;
+    --nx-warning: #e3a84a;
+    --nx-danger: #f0677a;
+    --nx-danger-hover: #f58593;
+    --nx-info: #3cc8e4;
+    --nx-icon-folder: #f0b850;
+    --nx-icon-image: #4fc58f;
+    --nx-icon-video: #e173ad;
+    --nx-icon-audio: #a984ec;
+    --nx-icon-archive: #e3a84a;
+    --nx-icon-code: #5ea7f0;
+    --nx-icon-doc: #8183ff;
+    --nx-icon-file: #8f96b8;
+    --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --nx-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --nx-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --nx-primary: #8183ff;
+  --nx-primary-hover: #9496ff;
+  --nx-primary-active: #6f71f0;
+  --nx-on-primary: #0f1220;
+  --nx-secondary: #3cc8e4;
+  --nx-bg: #0f1220;
+  --nx-surface: #161a2c;
+  --nx-surface-raised: #1d2238;
+  --nx-sidebar: #12152a;
+  --nx-overlay: rgba(0, 0, 0, 0.55);
+  --nx-text: #eceef8;
+  --nx-text-muted: #a3a9c7;
+  --nx-text-subtle: #737a9c;
+  --nx-text-disabled: #4c5272;
+  --nx-border: #2a3050;
+  --nx-border-strong: #3a4168;
+  --nx-divider: #222842;
+  --nx-hover: rgba(129, 131, 255, 0.09);
+  --nx-pressed: rgba(129, 131, 255, 0.16);
+  --nx-selected: rgba(129, 131, 255, 0.2);
+  --nx-selected-hover: rgba(129, 131, 255, 0.27);
+  --nx-focus-ring: #9496ff;
+  --nx-success: #41c38a;
+  --nx-warning: #e3a84a;
+  --nx-danger: #f0677a;
+  --nx-danger-hover: #f58593;
+  --nx-info: #3cc8e4;
+  --nx-icon-folder: #f0b850;
+  --nx-icon-image: #4fc58f;
+  --nx-icon-video: #e173ad;
+  --nx-icon-audio: #a984ec;
+  --nx-icon-archive: #e3a84a;
+  --nx-icon-code: #5ea7f0;
+  --nx-icon-doc: #8183ff;
+  --nx-icon-file: #8f96b8;
+  --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --nx-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --nx-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}

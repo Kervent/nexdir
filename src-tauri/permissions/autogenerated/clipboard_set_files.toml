@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clipboard-set-files"
+description = "Enables the clipboard_set_files command without any pre-configured scope."
+commands.allow = ["clipboard_set_files"]
+
+[[permission]]
+identifier = "deny-clipboard-set-files"
+description = "Denies the clipboard_set_files command without any pre-configured scope."
+commands.deny = ["clipboard_set_files"]

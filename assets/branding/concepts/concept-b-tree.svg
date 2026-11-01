@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Concept B (alternative, not selected): an "N" drawn as a directory tree of three connected nodes. -->
+  <defs>
+    <linearGradient id="b-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B5BF7"/>
+      <stop offset="1" stop-color="#12B5D6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#b-bg)"/>
+  <path d="M332 720 V304 L692 720 V304" fill="none" stroke="#fff" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="332" cy="304" r="64" fill="#fff"/>
+  <circle cx="692" cy="720" r="64" fill="#fff"/>
+</svg>

@@ -1,0 +1,11 @@
+[project]
+name = "nexdir-discord-setup"
+version = "0.1.0"
+description = "Configures the existing Nexdir Community Discord server. Never deletes anything."
+requires-python = ">=3.11"
+license = "MIT"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

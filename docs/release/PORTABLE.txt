@@ -1,0 +1,21 @@
+Nexdir - portable edition
+=========================
+
+Run Nexdir.exe. No installation and no administrator rights are needed.
+
+Where Nexdir stores data (all inside your user profile, nothing in the Nexdir folder):
+  %APPDATA%\org.nexdir.desktop       settings, organize rules, window position
+  %LOCALAPPDATA%\org.nexdir.desktop  WebView data and the optional search index
+Delete these folders to remove all traces after deleting Nexdir.exe.
+
+Requirements: Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime
+(preinstalled on Windows 11 and current Windows 10). If Nexdir does not start,
+install WebView2 from https://developer.microsoft.com/microsoft-edge/webview2/
+
+This build is not code-signed, so Windows SmartScreen may show a warning.
+Verify the ZIP with SHA256SUMS.txt from the release page before running it.
+
+License: MIT (see LICENSE.txt). Third-party components and their licenses:
+THIRD-PARTY-NOTICES.txt. Source code: https://github.com/Kervent/nexdir
+
+This is an alpha version. Keep backups of important files.

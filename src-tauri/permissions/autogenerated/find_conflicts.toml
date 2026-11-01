@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-find-conflicts"
+description = "Enables the find_conflicts command without any pre-configured scope."
+commands.allow = ["find_conflicts"]
+
+[[permission]]
+identifier = "deny-find-conflicts"
+description = "Denies the find_conflicts command without any pre-configured scope."
+commands.deny = ["find_conflicts"]

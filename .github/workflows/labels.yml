@@ -1,0 +1,33 @@
+name: Sync labels
+
+# Manual only. Creates the labels from .github/labels.json and updates their colour and
+# description. Labels that are not in the file are left alone: nothing is deleted.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write # create and edit labels
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github
+      - name: Create or update labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq -c '.[]' .github/labels.json | while read -r label; do
+            name=$(jq -r .name <<<"$label")
+            gh label create "$name" \
+              --repo "$GITHUB_REPOSITORY" \
+              --color "$(jq -r .color <<<"$label")" \
+              --description "$(jq -r .description <<<"$label")" \
+              --force
+          done

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-organize-preview"
+description = "Enables the organize_preview command without any pre-configured scope."
+commands.allow = ["organize_preview"]
+
+[[permission]]
+identifier = "deny-organize-preview"
+description = "Denies the organize_preview command without any pre-configured scope."
+commands.deny = ["organize_preview"]

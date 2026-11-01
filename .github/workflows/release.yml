@@ -1,0 +1,78 @@
+name: Release
+
+# Started by hand only (Actions -> Release -> Run workflow), with an existing version tag such as
+# v0.4.3. Builds the release files from that tag and creates a *draft* release, so a maintainer
+# reviews everything before anything is published. Pushing a tag does not start it, and it
+# refuses tags that already have a release, so files uploaded to an existing release are never
+# replaced.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build, e.g. v0.4.3
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write # needed only to create the draft release
+    steps:
+      - name: Check the tag and that it has no release yet
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ($env:TAG -notmatch '^v\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') { throw "Not a version tag: $env:TAG" }
+          gh release view $env:TAG --repo $env:REPO *> $null
+          if ($LASTEXITCODE -eq 0) { throw "A release for $env:TAG already exists; its files are not replaced." }
+          $global:LASTEXITCODE = 0
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          persist-credentials: false
+
+      # The tag must match the version in tauri.conf.json, so a release can never ship
+      # files with a different version number than its tag.
+      - name: Check tag matches version
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:TAG -ne "v$version") { throw "Tag $env:TAG does not match version $version in tauri.conf.json" }
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - run: npm ci
+      - run: npm test
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      # Optional Discord invite for Help & Support: a repository *variable* (not a secret), e.g.
+      # https://discord.gg/abc123. Empty means the Discord entry is shown as unavailable.
+      - run: npx tauri build
+        env:
+          VITE_NEXDIR_DISCORD_INVITE: ${{ vars.NEXDIR_DISCORD_INVITE }}
+
+      # Same script as for local release builds (see docs/release/process.md).
+      - name: Collect artifacts and checksums
+        shell: pwsh
+        run: ./tools/release/package.ps1 -OutDir out
+
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ inputs.tag }}
+          draft: true
+          # 0.x versions are alpha/beta: always marked as pre-release.
+          prerelease: ${{ contains(inputs.tag, '-') || startsWith(inputs.tag, 'v0.') }}
+          files: out/*

@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in Nexdir does not work as expected.
+labels: ["bug", "needs triage"]
+# Field ids match the in-app form (Help → Report a Bug, src/features/help/report.ts), which
+# opens this form prefilled. Keep them in sync.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        **Security vulnerabilities must not be reported here** — please use a [private security advisory](../security/advisories/new) instead.
+        Do not attach personal files or screenshots that show private information.
+  - type: input
+    id: version
+    attributes:
+      label: Nexdir version
+      description: Shown under Help → About Nexdir. Filled in automatically when you report from the app.
+      placeholder: "0.4.3"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Windows edition, version, build and architecture.
+      placeholder: "Windows 11 24H2 (build 26100.1742), x86_64"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: dropdown
+    id: data-loss
+    attributes:
+      label: Was any data lost or changed unexpectedly?
+      options: ["No", "Yes", "Not sure"]
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Drive type (local, USB, network), file system, path length, logs. Remove personal information.
