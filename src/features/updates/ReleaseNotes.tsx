@@ -47,7 +47,7 @@ export function ReleaseNotes({ text }: { text: string }) {
 
 /** `**bold**`, `` `code` ``, `[text](url)` → text; everything else stays literal. */
 function inline(text: string): ReactNode[] {
-  const cleaned = text.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/<[^>]+>/g, "");
+  const cleaned = text.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/<[^>]*>?/g, ""); // every "<" starts a match, so no tag remnant survives
   return cleaned.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
     part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
       <strong key={i}>{part.slice(2, -2)}</strong>
