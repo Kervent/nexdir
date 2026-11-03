@@ -70,6 +70,15 @@ Rotate when the key or password may have leaked, or when a maintainer with acces
 
 Copies older than the rotation release must be updated manually once if step 2 is skipped.
 
+### Setting or checking the password secret
+
+Pasting into gh's interactive prompt lost a character once (2026-11-03). Use
+`tools/release/set-signing-password-secret.ps1` instead: it reads the password with a hidden
+PowerShell prompt, proves locally that it opens the key (signs and verifies a test file), and only
+then passes the exact bytes to `gh secret set` through standard input. Afterwards run
+*Actions → Verify update signing key*, which signs a throwaway file on GitHub with both secrets
+and verifies it against the public key (nothing is built or published).
+
 ## Signed builds on your own PC
 
 `powershell -ExecutionPolicy Bypass -File tools/release/build-signed.ps1` asks for the key password

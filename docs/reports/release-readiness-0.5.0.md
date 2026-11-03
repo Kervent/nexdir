@@ -14,11 +14,11 @@ release build signed with the **production key** (section 7). Signed release fil
 
 Before publishing, still open (owner):
 
-1. **GitHub secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`**: when it was set, 29 characters were
-   entered, for the successful local signed build 30. If the Release workflow is to sign in CI,
-   set the secret again by pasting the password from the password manager; otherwise the CI build
-   stops at signing (it cannot publish anything wrong). The local signed files do not depend on
-   the secret.
+1. ~~GitHub secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`~~ — **resolved**: the first two entries
+   through gh's prompt were wrong (a character was lost); set again with
+   `tools/release/set-signing-password-secret.ps1` after a local check, and the workflow
+   *Verify update signing key* signed and verified a test file on GitHub
+   ([run 41664964614](https://github.com/Kervent/nexdir/actions/runs/41664964614), attempt 3: success).
 2. Back up `C:\Users\User\NexdirKeys\nexdir-update.key` and the password offline
    ([signing.md](../updates/signing.md)).
 3. Recommended: test the MSI update path with the owner confirming the administrator prompts.
