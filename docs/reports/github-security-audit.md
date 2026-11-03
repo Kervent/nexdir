@@ -51,10 +51,11 @@ scripts (checked by the notifier's workflow tests). Artifacts: only the 7-day CI
 | Source | Alert | Assessment | Action |
 |---|---|---|---|
 | Dependabot #1 | `glib` 0.18.5, GHSA-wrw7-89jp-8q8g (medium, unsoundness) | Linux-only dependency of Tauri's GTK stack; `cargo tree --target x86_64-pc-windows-msvc -i glib` prints nothing; not shipped | dismissed as *vulnerable code not used* (owner's approval), with reason |
-| CodeQL #1 | `js/incomplete-multi-character-sanitization`, `ReleaseNotes.tsx` | Not exploitable (React renders text, never HTML), but nested tags could leave visible remnants | **fixed** in PR #2 with a regression test |
-| CodeQL #2 | same rule, `tools/branding/build-branding.mjs` | build-time tool, input is the project's own SVG | open — proposed: dismiss as false positive (needs owner's OK) |
-| CodeQL #3, #4 | `py/clear-text-logging-sensitive-data`, `tools/release/update_feed.py` | logs only tags, file names, verification errors and the *public* signed comment; the token is never printed | open — proposed: dismiss as false positive (needs owner's OK) |
-| CodeQL #5 | `py/incomplete-url-substring-sanitization`, notifier test `conftest.py` | fake HTTP router in tests | open — proposed: dismiss as *used in tests* (needs owner's OK) |
+| CodeQL #1 | `js/incomplete-multi-character-sanitization`, `ReleaseNotes.tsx` | Not exploitable (React renders text, never HTML), but nested tags could leave visible remnants | **fixed** in PR #2 with a regression test (closed by CodeQL as fixed) |
+| CodeQL #2 | same rule, `tools/branding/build-branding.mjs` | build-time tool, input is the project's own SVG | dismissed as *false positive* (owner's OK), reason recorded |
+| CodeQL #3, #4 | `py/clear-text-logging-sensitive-data`, `tools/release/update_feed.py` | logs only tags, file names, verification errors and the *public* signed comment; the token is never printed | dismissed as *false positive* (owner's OK), reasons recorded |
+| CodeQL #5 | `py/incomplete-url-substring-sanitization`, notifier test `conftest.py` | fake HTTP router in tests | dismissed as *used in tests* (owner's OK), reason recorded |
+| CodeQL #6 | same rule as #1, on the first fix in `ReleaseNotes.tsx` | the regex variants were not recognised as complete by CodeQL | **fixed** in PR #5 with a character filter (`stripTags`) and unit tests; closed by CodeQL as fixed |
 | Secret scanning | 0 alerts | — | — |
 
 ## Secret scan of the Git history

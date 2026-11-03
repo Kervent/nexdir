@@ -24,8 +24,8 @@ against, with reason), **NOT TESTED**, **PENDING** (waits for a step or approval
 | Repository-level signing secrets | present | **deleted** (owner's OK) before the proof run, so only the environment secrets exist | PASS |
 | `SECURITY.md` | reporting channel, short policy | + what to include, handling process, coordinated disclosure, supported-versions table | PASS (PR #2) |
 | Dependabot alert #1 (glib) | open | dismissed (not used), reason recorded | PASS |
-| CodeQL alert #1 | — | fixed in code (PR #2, `5834c08`) | PASS (closes with the next analysis of `main`) |
-| CodeQL alerts #2–#5 | — | open; proposed dismissals need the owner's OK | PENDING |
+| CodeQL alerts #1 and #6 | — | fixed in code (PR #2, then PR #5: `stripTags` character filter), both closed by CodeQL as fixed | PASS |
+| CodeQL alerts #2–#5 | — | dismissed with the owner's OK (false positive ×3, used in tests ×1), reasons recorded on GitHub | PASS — **0 open code-scanning alerts** |
 
 ## Decisions
 
@@ -65,7 +65,14 @@ against, with reason), **NOT TESTED**, **PENDING** (waits for a step or approval
 | `release` environment secrets present (names only) | `TAURI_SIGNING_PRIVATE_KEY`, `…_PASSWORD` set 16:41 UTC; password checked locally against the key before upload — PASS |
 | Signing through the environment | run [41679019312](https://github.com/Kervent/nexdir/actions/runs/41679019312) on `main` waited for approval (`waiting`), was approved by Kervent for `release`, signed and verified a test file with the **environment** secrets (repository secrets already deleted) — PASS |
 | Update-feed workflow under the new rules | Not affected by `Protect main`; `update-feed` rules only block force push/deletion. NOT TESTED by a real run (no new release) |
-| Release workflow | PENDING with the signing check; a full run needs a new tag (not created) — NOT TESTED |
+| Release workflow | uses the same `release` environment whose signing route passed above; a full release run needs a new tag (not created) — NOT TESTED |
+
+## Code scanning in pull requests
+
+CodeQL also reports findings as review comments on the pull request. Because the `main` ruleset
+requires resolved review threads, such a finding blocks the merge until it is fixed (PR #5 was
+`BLOCKED` until its CodeQL finding was gone; the bot then resolved its own thread). CodeQL is not
+a required status check, but this path already stops new code-scanning findings.
 
 ## Dependabot pull requests and the license check
 
@@ -90,5 +97,4 @@ Dependabot PR is merged automatically.
 - The maintainer account is the single point of trust (admin, sole approver of the release
   environment, holder of the key backup). Two-factor authentication on the account is essential
   (cannot be verified through the repository API).
-- CodeQL alerts #2–#5 stay open until the owner decides.
 - No Authenticode signing of the Windows binaries.
