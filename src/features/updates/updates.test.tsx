@@ -268,6 +268,12 @@ describe("release notes", () => {
     expect(container.querySelector("strong")).toHaveTextContent("bold");
   });
 
+  it("leaves no tag remnants from nested or unclosed tags", () => {
+    const { container } = render(<ReleaseNotes text={"a<scr<script>ipt>b <img src=x onerror=1 c"} />);
+    expect(container.textContent).not.toContain("<");
+    expect(container.querySelector("script, img")).toBeNull();
+  });
+
   it("shows GitHub alerts as plain text and the real release notes without markup", () => {
     const { container } = render(<ReleaseNotes text={["> [!WARNING]", "> **Alpha.** Keep backups.", "", "| File | Use |", "|---|---|", "| a | b |"].join("\n")} />);
     expect(container.textContent).toBe("Alpha. Keep backups.");
