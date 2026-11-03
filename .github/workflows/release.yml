@@ -24,6 +24,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    # The signing secrets live in this environment: only main and v* tags may use it, and every
+    # run waits for a maintainer's approval (docs/updates/signing.md).
+    environment: release
     permissions:
       contents: write # needed only to create the draft release
     steps:
