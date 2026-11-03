@@ -11,11 +11,38 @@ Report vulnerabilities privately via a
 ("Report a vulnerability" on the repository's *Security* tab, see
 [how it works](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)).
 
-Please include the Nexdir version, Windows version, steps to reproduce and the impact you
-expect. We aim to acknowledge reports within 7 days. We will credit reporters in the
-release notes unless you prefer otherwise.
+Private vulnerability reporting is the only channel for security reports; there is no
+security e-mail address.
+
+### What to include
+
+- Nexdir version (*About Nexdir*), installation type (setup, MSI, portable) and Windows version
+- What an attacker can do, and what they need for it (a crafted file or folder name, a malicious
+  network, a modified update feed, local access, …)
+- Steps to reproduce, ideally with a minimal example — never real personal files
+- Your assessment of the impact, and whether you have seen it exploited
+
+### How reports are handled
+
+1. Acknowledgement within 7 days.
+2. Assessment and, if confirmed, a fix developed in a private fork of the advisory.
+3. A fixed release, signed for the in-app updater, published as soon as it is ready.
+4. A published GitHub security advisory (with a CVE where appropriate) describing the problem
+   and the fixed version. Reporters are credited unless they prefer otherwise.
+
+Please give us the chance to ship a fix before disclosing details publicly. Nexdir works on
+people's personal files and installs updates; publishing a vulnerability before a fixed version
+is available would expose users who cannot protect themselves yet. If a report affects the
+update signing key, we treat the key as compromised and follow the rotation procedure in
+[docs/updates/signing.md](docs/updates/signing.md).
 
 ## Supported versions
+
+| Version | Security fixes |
+|---|---|
+| Latest 0.5.x pre-release | Yes |
+| Older 0.5.x pre-releases | No — update in the app (*Help → Check for Updates*) |
+| 0.4.3 and older | No — no updater; install the latest version manually |
 
 Until 1.0, only the latest release receives security fixes.
 
