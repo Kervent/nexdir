@@ -6,7 +6,7 @@ All notable changes to Nexdir are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.5.0-alpha.1] — unreleased — updates, licenses and credits (alpha pre-release)
+## [0.5.0-alpha.1] — 2026-11-03 — updates, licenses and credits (alpha pre-release)
 
 ### Added
 - **Update check and in-app updates** with the official Tauri updater: *Help → Check for

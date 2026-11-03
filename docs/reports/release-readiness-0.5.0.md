@@ -221,5 +221,5 @@ the public key. If the release is built by the workflow instead, its files and c
 ## Next alpha
 
 Version `0.5.0-alpha.1` (MSI version `0.5.0.1`) is set; release notes are in
-`docs/release/notes-0.5.0-alpha.1.md`; the CHANGELOG entry is marked "unreleased". Remaining steps
+`docs/release/notes-0.5.0-alpha.1.md`; the CHANGELOG entry is dated 2026-11-03. Remaining steps
 are listed under the verdict.
