@@ -67,6 +67,24 @@ against, with reason), **NOT TESTED**, **PENDING** (waits for a step or approval
 | Update-feed workflow under the new rules | Not affected by `Protect main`; `update-feed` rules only block force push/deletion. NOT TESTED by a real run (no new release) |
 | Release workflow | PENDING with the signing check; a full run needs a new tag (not created) — NOT TESTED |
 
+## Dependabot pull requests and the license check
+
+The first Dependabot pull request (#3, `lucide-react` 1.65.0 → 1.66.0, group `npm-minor`) ran
+all required checks: everything passed except **Security**, because `THIRD-PARTY-NOTICES.txt`
+and the in-app license index no longer match the new version. This is intended — no dependency
+change ships without updated license information — but it means every Dependabot PR needs one
+manual step before it can be merged:
+
+```bash
+gh pr checkout <number>
+python tools/release/third_party_notices.py      # regenerates the notices and the license index
+git commit -am "Update third-party notices"
+git push
+```
+
+After the push the checks run again; review the license changes in the diff, then merge. No
+Dependabot PR is merged automatically.
+
 ## Remaining risks
 
 - The maintainer account is the single point of trust (admin, sole approver of the release
