@@ -1,0 +1,50 @@
+name: Verify update signing key
+
+# Checks that the secrets TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD work and
+# belong to the public key in src-tauri/tauri.conf.json: a throwaway text file is signed with them
+# and the signature is verified. Nothing is built, uploaded or published. Secret values never
+# appear in the log (GitHub masks them; the tools print only success or the error).
+#
+# Run it after setting or rotating the secrets: Actions -> Verify update signing key -> Run workflow.
+# It also runs once when this file changes on a branch that is pushed.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/verify-signing-key.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      # Locked Tauri CLI from package-lock.json.
+      - run: npm ci
+      - name: Sign a test file with the secrets
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY is missing"; exit 1; fi
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY_PASSWORD is missing"; exit 1; fi
+          printf 'Nexdir signing key check %s\n' "$GITHUB_RUN_ID" > "$RUNNER_TEMP/check.txt"
+          if ! npx tauri signer sign --app-version 0.0.0-check "$RUNNER_TEMP/check.txt" > "$RUNNER_TEMP/sign.log" 2>&1; then
+            echo "::error::Signing failed: the password secret does not decrypt the key (or the key secret is not a valid key)."
+            grep -iE "error|password|invalid" "$RUNNER_TEMP/sign.log" | grep -v "PRIVATE_KEY" | head -5
+            exit 1
+          fi
+          echo "Signing with the secrets worked."
+      - name: Verify against the public key in tauri.conf.json
+        run: python tools/release/update_feed.py --verify "$RUNNER_TEMP/check.txt" "$RUNNER_TEMP/check.txt.sig" --version 0.0.0-check
