@@ -4,22 +4,26 @@ Date: 2026-11-03 · Branch: `feature/0.5.0-updater` (local, not pushed) · Base:
 (0.4.3). Tested on Windows 11 Pro 26H2 (build 26300), x64, 1 PC. Nothing was published; the
 `v0.4.3` release and tag were not touched.
 
-## Verdict: NOT READY — blocked only by the production update key
+## Verdict: ALPHA READY
 
-The code, the update system, the license and credits views and the release pipeline are
-implemented and tested (see below), including a real update from one installed signed build to
-the next. A **release cannot be made yet** because the production update signing key does not
-exist: by design, `tauri.conf.json` has an empty public key, so builds made now cannot install
-updates, and the Release workflow refuses to build without the key. Generating that key needs the
-owner's approval (master prompt, phase 6).
+Updated after the owner approved the production key (same day). The code, the update system, the
+license and credits views and the release pipeline are implemented and tested, including a real
+update from one installed signed build to the next (test key) and a smoke test of the installed
+release build signed with the **production key** (section 7). Signed release files exist in
+`release-out/0.5.0-alpha.1/` (section 12).
 
-It becomes **ALPHA READY** after:
+Before publishing, still open (owner):
 
-1. the owner approves and generates the production key, puts the public key into
-   `tauri.conf.json` and the private key into the GitHub secrets ([signing.md](../updates/signing.md));
-2. a signed release build is made from that commit (Release workflow or locally) and its
-   installers are smoke-tested once more (the E2E steps below with the production build);
-3. recommended: the MSI update path is tested with the owner confirming the administrator prompts.
+1. **GitHub secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`**: when it was set, 29 characters were
+   entered, for the successful local signed build 30. If the Release workflow is to sign in CI,
+   set the secret again by pasting the password from the password manager; otherwise the CI build
+   stops at signing (it cannot publish anything wrong). The local signed files do not depend on
+   the secret.
+2. Back up `C:\Users\User\NexdirKeys\nexdir-update.key` and the password offline
+   ([signing.md](../updates/signing.md)).
+3. Recommended: test the MSI update path with the owner confirming the administrator prompts.
+4. Push the branch, merge after CI, tag, publish the release; check that the *Update feed* workflow
+   lists it (it has never run on GitHub yet).
 
 ## 1. Implemented
 
@@ -137,6 +141,14 @@ served by a local feed server on 127.0.0.1.
 8. Portable (unpacked exe): detected as portable, announces the update, no download button,
    backend refuses to download, opens the release page (intercepted).
 9. Uninstalled silently; no files or uninstall entry left; the PC's previous Nexdir data restored.
+10. **Release build with the production key** (`release-out/0.5.0-alpha.1`): installed the signed
+    `Setup.exe` silently → version 0.5.0-alpha.1, per-user installation, *can install updates*
+    (production public key built in), Preview channel, automatic checks off; a manual check
+    reached GitHub over HTTPS in 364 ms and reported "HTTP 404" (correct: the `update-feed` branch
+    does not exist before the first publication); an automatic check was skipped (off). The
+    portable ZIP's exe carries no installer mark (detected as portable). Uninstalled, data
+    restored. The GUI regression (42/42) ran on the build of the same code before the public key
+    and one release-notes rendering fix (covered by unit tests) were added.
 
 Test-script failures (not app defects, both re-run): a cancelled copy is shown as cancelled a
 moment before its job has finished, so the test clicked *Install* too early and the backend
@@ -187,27 +199,27 @@ SHA-256 are documented as separate mechanisms.
 - Windows 10 not tested; screen readers tested through ARIA roles/labels and unit tests, not with
   NVDA/Narrator; DPI/small-window layouts tested for the tour (GUI suite) and by CSS review for the
   new dialogs.
-- The production build made today has no update key: it checks for updates but can only open the
-  release page.
 
 ## 12./13. Artifacts and SHA-256
 
-**No release artifacts exist yet** (they require the production key). For reference, the local
-build from this branch without a key (`npm run app:build`, `package.ps1` without
-`-RequireSignatures`, in the session's temp folder — not for distribution):
+Built locally with `tools/release/build-signed.ps1` (production key `B64E9EF8C4E690D2`), both
+update signatures verified by `package.ps1 -RequireSignatures`; in `release-out/0.5.0-alpha.1/`
+(not uploaded):
 
 ```text
-d03d56e487c3d3d4781f04f0216cf0e8b1162c6103fdaf21b83ec9d5c8221d41  Nexdir-0.5.0-alpha.1-Setup.exe
-d3092d348f4a47f27fcd1527f74009801dbeac49ee3ba984f5fdc83ac796c144  Nexdir-0.5.0-alpha.1.msi
-4fb6937a85cf96257e71df58f4252174f52d7f39a2b290b8ee89c183c0646c51  Nexdir-0.5.0-alpha.1-Portable.zip
+c7d593504a1a0afc2b2a4b378444711390c116fa4e11c7fcf5f3c1e4dabe3f65  Nexdir-0.5.0-alpha.1-Setup.exe
+5a2d98029d069d9ec996b9f3f8c9dfce078d210eae02c107d2a794bfc2c32492  Nexdir-0.5.0-alpha.1-Setup.exe.sig
+f386dffe9cc8c3d99c3d41623f8df034c1e13caaa5dc5e3bd25619881a1b5ad1  Nexdir-0.5.0-alpha.1.msi
+3340cddf02ac4d6f577265a4443f53841b58191f4ed14f555206378b2f824606  Nexdir-0.5.0-alpha.1.msi.sig
+2512e41fca7e2e7a466439efede353c83b9e8ab5e67c8d213a27e54094886a45  Nexdir-0.5.0-alpha.1-Portable.zip
 ```
 
-The test builds A/B were signed with a test key and are not distributable either.
+Sizes: Setup 3.3 MB, MSI 4.4 MB, ZIP 4.1 MB. Built from the working tree of the commit that adds
+the public key. If the release is built by the workflow instead, its files and checksums differ
+(new timestamps and signatures).
 
 ## Next alpha
 
 Version `0.5.0-alpha.1` (MSI version `0.5.0.1`) is set; release notes are in
-`docs/release/notes-0.5.0-alpha.1.md`; CHANGELOG entry is marked "unreleased". After the key:
-commit the public key, push the branch, merge after CI, tag `v0.5.0-alpha.1`, run the Release
-workflow, review the draft, publish — then the Update-feed workflow lists it for the Preview
-channel.
+`docs/release/notes-0.5.0-alpha.1.md`; the CHANGELOG entry is marked "unreleased". Remaining steps
+are listed under the verdict.

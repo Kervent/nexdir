@@ -23,9 +23,17 @@ The updater runs with `requireSignedVersion`: the signed *trusted comment* of ea
 contain `version:<exact version>`. The Tauri CLI writes it automatically. A signature for 0.5.0
 therefore cannot be reused to pass 0.5.0 off as 0.6.0.
 
+The production key was created on 2026-11-03 (minisign key ID `B64E9EF8C4E690D2`) with
+`tools/release/new-update-key.ps1`; its public half is in `tauri.conf.json`, the private key and
+password are GitHub Actions secrets and kept offline by the owner.
+
 ### Creating the production key (one time, maintainer only)
 
-Do this on a trusted PC, not in CI. Nothing here is uploaded automatically.
+Do this on a trusted PC, not in CI. `tools/release/new-update-key.ps1` does all of the steps below:
+it refuses folders inside the repository or OneDrive, restricts the folder to your account, never
+overwrites an existing key, prints only the public key, and optionally sets the secrets (the key
+is read from the file, the password typed into gh's hidden prompt — paste **only the password**
+there). By hand:
 
 ```powershell
 # 1. Generate (asks for a password; use a long random one from a password manager).
@@ -61,6 +69,12 @@ Rotate when the key or password may have leaked, or when a maintainer with acces
    feed workflow then drops them automatically.
 
 Copies older than the rotation release must be updated manually once if step 2 is skipped.
+
+## Signed builds on your own PC
+
+`powershell -ExecutionPolicy Bypass -File tools/release/build-signed.ps1` asks for the key password
+(hidden), builds with update signatures, verifies them and writes the release files to
+`release-out\<version>\`. The key and password exist only in that process's environment.
 
 ## What the release workflow enforces
 
