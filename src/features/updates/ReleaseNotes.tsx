@@ -45,9 +45,21 @@ export function ReleaseNotes({ text }: { text: string }) {
   return <div className="nx-release-notes">{blocks.length ? blocks : <p className="nx-muted">No release notes were provided.</p>}</div>;
 }
 
+/** Drops everything from a "<" up to the next ">" (or the end): no "<" can survive. */
+export function stripTags(text: string): string {
+  let out = "";
+  let inTag = false;
+  for (const ch of text) {
+    if (ch === "<") inTag = true;
+    else if (inTag) inTag = ch !== ">";
+    else out += ch;
+  }
+  return out;
+}
+
 /** `**bold**`, `` `code` ``, `[text](url)` → text; everything else stays literal. */
 function inline(text: string): ReactNode[] {
-  const cleaned = text.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/<[^>]*>/g, "").replace(/[<>]/g, ""); // tags first, then any stray bracket: no "<" can survive
+  const cleaned = stripTags(text.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1"));
   return cleaned.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
     part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
       <strong key={i}>{part.slice(2, -2)}</strong>

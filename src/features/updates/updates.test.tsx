@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
-import { ReleaseNotes } from "./ReleaseNotes";
+import { ReleaseNotes, stripTags } from "./ReleaseNotes";
 import { UpdateDialog, signatureStatus } from "./UpdateDialog";
 import { UpdateNotice } from "./UpdateNotice";
 import { speedOf, useUpdates, type Updates, type UpdatesApi } from "./useUpdates";
@@ -266,6 +266,13 @@ describe("release notes", () => {
     expect(container.querySelector("img, script, a")).toBeNull();
     expect(container).toHaveTextContent("link");
     expect(container.querySelector("strong")).toHaveTextContent("bold");
+  });
+
+  it("strips tags character by character", () => {
+    expect(stripTags("a<b>c</b>d")).toBe("acd");
+    expect(stripTags("x<scr<script>ipt>y")).toBe("xipt>y"); // a lone ">" is plain text; no "<" survives
+    expect(stripTags("keep 1 > 0 and <unclosed")).toBe("keep 1 > 0 and ");
+    expect(stripTags("no tags")).toBe("no tags");
   });
 
   it("leaves no tag remnants from nested or unclosed tags", () => {
