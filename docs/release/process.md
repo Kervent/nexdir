@@ -43,7 +43,9 @@ announcement.
    ```
    Pushing a tag does not start a build.
 3. **Build the release files**, either way:
-   - **In GitHub Actions:** *Actions → Release → Run workflow*, enter the tag. The workflow
+   - **In GitHub Actions:** *Actions → Release → Run workflow* on `main`, enter the tag, then
+     approve the run under *Review deployments* (environment `release`, which holds the signing
+     key and only accepts `main` and `v*` tags). The workflow
      checks that the tag matches the version in `tauri.conf.json`, runs the tests, builds and
      creates a **draft release** with `Nexdir-<version>-Setup.exe`, `Nexdir-<version>-Portable.zip`,
      `Nexdir-<version>.msi`, the update signatures `…-Setup.exe.sig` and `….msi.sig`, and

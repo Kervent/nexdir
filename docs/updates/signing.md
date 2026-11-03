@@ -25,7 +25,18 @@ therefore cannot be reused to pass 0.5.0 off as 0.6.0.
 
 The production key was created on 2026-11-03 (minisign key ID `B64E9EF8C4E690D2`) with
 `tools/release/new-update-key.ps1`; its public half is in `tauri.conf.json`, the private key and
-password are GitHub Actions secrets and kept offline by the owner.
+password are secrets of the protected GitHub environment **`release`** (since 2026-11-03; there
+are no repository-level copies) and kept offline by the owner.
+
+### The `release` environment
+
+- Only `main` and tags `v*` may deploy to it, so a workflow file changed on another branch never
+  receives the key.
+- Every run that uses it (*Release*, *Verify update signing key*) waits until the maintainer
+  approves it under *Actions → the run → Review deployments*.
+- To store or replace the secrets there, use
+  `tools/release/set-signing-password-secret.ps1 -Environment release -IncludeKey` (checks the
+  password against the local key first), then run *Verify update signing key* and approve it.
 
 ### Creating the production key (one time, maintainer only)
 
@@ -40,14 +51,10 @@ there). By hand:
 npx tauri signer generate -w "$env:USERPROFILE\NexdirKeys\nexdir-update.key"
 # 2. Put the PUBLIC key (nexdir-update.key.pub, one line of base64) into
 #    src-tauri/tauri.conf.json -> plugins.updater.pubkey and commit it.
-# 3. Store the PRIVATE key and password as GitHub Actions secrets (read from the file, never typed
-#    into a command line or chat):
-Get-Content "$env:USERPROFILE\NexdirKeys\nexdir-update.key" -Raw | gh secret set TAURI_SIGNING_PRIVATE_KEY --repo Kervent/nexdir
-gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo Kervent/nexdir   # prompts for the value
+# 3. Store the PRIVATE key and password in the protected "release" environment (key read from the
+#    file, password checked locally and passed through stdin, never typed into a command line):
+powershell -ExecutionPolicy Bypass -File tools/release/set-signing-password-secret.ps1 -Environment release -IncludeKey
 ```
-
-Restrict the secrets to the release workflow by using a GitHub *environment* with required
-reviewers if more maintainers join.
 
 ### Backup
 
