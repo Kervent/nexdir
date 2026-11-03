@@ -47,3 +47,14 @@ files first; never test with personal data). Tick each line before publishing a 
 
 - [ ] Discord announcement appeared once in #releases (if webhooks are configured).
 - [ ] Download links in the announcement work.
+
+## Updates and licenses (0.5.0 and later)
+
+- [ ] *Help → Check for Updates* with the Beta (Preview) channel reports "up to date" before
+      publishing; Stable says there is no stable release yet.
+- [ ] Settings → Updates: automatic checks off by default; turning them on survives a restart.
+- [ ] The `.sig` files of both installers are attached and `package.ps1 -RequireSignatures` passed.
+- [ ] After publishing: the *Update feed* run lists the new version; the previous version offers
+      it, downloads it, verifies it and installs it after confirmation (setup and MSI).
+- [ ] Portable: the update is announced, the download page opens, nothing is changed.
+- [ ] About → Open Source Licenses opens, search and filters work, a license text can be copied.

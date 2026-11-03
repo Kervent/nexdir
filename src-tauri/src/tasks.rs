@@ -219,6 +219,14 @@ impl TaskManager {
         tasks.iter().find(|t| t.id == id).and_then(|t| t.result.lock().unwrap().clone())
     }
 
+    pub fn is_running(&self, kind: TaskKind) -> bool {
+        let tasks = self.tasks.lock().unwrap();
+        tasks.iter().any(|t| {
+            let p = t.progress.lock().unwrap();
+            p.kind == kind && p.state == TaskState::Running
+        })
+    }
+
     pub fn progress(&self, id: u64) -> Option<TaskProgress> {
         let tasks = self.tasks.lock().unwrap();
         tasks.iter().find(|t| t.id == id).map(|t| t.progress.lock().unwrap().clone())

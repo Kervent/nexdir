@@ -8,7 +8,13 @@
     Nexdir-<version>-Setup.exe     NSIS installer (per user, no admin rights)
     Nexdir-<version>.msi           MSI package
     Nexdir-<version>-Portable.zip  Nexdir.exe + LICENSE.txt + THIRD-PARTY-NOTICES.txt + README.txt
-    SHA256SUMS.txt                 SHA-256 of the three files above
+    Nexdir-<version>-Setup.exe.sig Tauri update signatures of both installers (only when the
+    Nexdir-<version>.msi.sig       build ran with the update signing key, see docs/updates/signing.md)
+    SHA256SUMS.txt                 SHA-256 of all files above
+
+  Three different things protect the downloads and must not be confused: SHA-256 checksums
+  (detect damaged downloads), Tauri update signatures (Nexdir's updater only installs files
+  signed with the Nexdir update key) and Windows Authenticode code signing (not used yet).
 
   Only installers whose file name contains the version from tauri.conf.json are used, so a
   stale bundle from an earlier build can never be shipped. If code signing is added later,
@@ -22,7 +28,12 @@
 param(
   [string]$OutDir = "release-out",
   # Replace an existing output folder (only that folder is removed).
-  [switch]$Clean
+  [switch]$Clean,
+  # Release builds: fail unless both installers have a valid update signature for this version.
+  [switch]$RequireSignatures,
+  # Public key to check the signatures with; default: the one in tauri.conf.json. Only test
+  # builds made with a test key (docs/updates/testing.md) pass one.
+  [string]$PublicKey
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,6 +57,8 @@ function Find-One([string]$folder, [string]$filter) {
 }
 
 $setup = Find-One "nsis" "Nexdir_${version}_x64-setup.exe"
+# The MSI file is named after the app version, also for pre-releases whose MSI-internal
+# version is numeric (bundle.windows.wix.version, e.g. 0.5.0.1).
 $msi = Find-One "msi" "Nexdir_${version}_x64_*.msi"
 $exe = Join-Path $tauriDir "target\release\nexdir.exe"
 if (-not (Test-Path $exe)) { throw "Missing $exe" }
@@ -59,6 +72,25 @@ $files = @(
   @{ Source = $msi.FullName; Name = "Nexdir-$version.msi" }
 )
 foreach ($f in $files) { Copy-Item -LiteralPath $f.Source -Destination (Join-Path $OutDir $f.Name) }
+
+# Update signatures (.sig next to each installer, written by `tauri build` when
+# bundle.createUpdaterArtifacts is on and TAURI_SIGNING_PRIVATE_KEY is set).
+foreach ($f in $files) {
+  $sig = "$($f.Source).sig"
+  if (-not (Test-Path -LiteralPath $sig)) {
+    if ($RequireSignatures) { throw "Missing update signature $sig. Unsigned update files are not released." }
+    Write-Warning "$($f.Name) has no update signature (local build without the signing key)."
+    continue
+  }
+  if ((Get-Item -LiteralPath $sig).LastWriteTimeUtc -lt (Get-Item -LiteralPath $f.Source).LastWriteTimeUtc.AddMinutes(-1)) {
+    throw "$sig is older than its installer (stale signature)."
+  }
+  # Checked against the public key in tauri.conf.json, and bound to exactly this version.
+  $keyArgs = if ($PublicKey) { @("--pubkey", $PublicKey) } else { @() }
+  & python (Join-Path $PSScriptRoot "update_feed.py") --verify $f.Source $sig --version $version @keyArgs
+  if ($LASTEXITCODE -ne 0) { throw "The update signature of $($f.Name) is invalid." }
+  Copy-Item -LiteralPath $sig -Destination (Join-Path $OutDir "$($f.Name).sig")
+}
 
 # Portable ZIP
 $staging = Join-Path ([IO.Path]::GetTempPath()) ("nexdir-portable-" + [Guid]::NewGuid().ToString("N"))

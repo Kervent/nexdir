@@ -70,11 +70,14 @@ export function NameDialog({ title, label, initial, confirmLabel, onConfirm, onC
   );
 }
 
-export function ConfirmDialog({ title, message, detail, confirmLabel, danger, onConfirm, onClose }: {
+export function ConfirmDialog({ title, message, detail, confirmLabel, cancelLabel = "Cancel", focusCancel, danger, onConfirm, onClose }: {
   title: string;
   message: string;
   detail?: React.ReactNode;
   confirmLabel: string;
+  cancelLabel?: string;
+  /** Focus the safe choice first (for actions that are hard to undo). */
+  focusCancel?: boolean;
   danger?: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -83,11 +86,11 @@ export function ConfirmDialog({ title, message, detail, confirmLabel, danger, on
     <Dialog
       title={title}
       onClose={onClose}
-      initialFocus="button.is-primary, button.is-danger"
+      initialFocus={focusCancel ? ".nx-dialog-footer button" : "button.is-primary, button.is-danger"}
       footer={
         <>
           <button type="button" className="nx-button" onClick={onClose}>
-            Cancel
+            {cancelLabel}
           </button>
           <button
             type="button"

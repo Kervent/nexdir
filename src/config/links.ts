@@ -8,6 +8,8 @@ export const LINKS = {
   repository: REPOSITORY_URL,
   issues: `${REPOSITORY_URL}/issues`,
   releases: `${REPOSITORY_URL}/releases`,
+  contributors: `${REPOSITORY_URL}/graphs/contributors`,
+  contributing: `${REPOSITORY_URL}/blob/main/CONTRIBUTING.md`,
   documentation: `${REPOSITORY_URL}/tree/main/docs`,
   security: `${REPOSITORY_URL}/security/advisories/new`,
   newBug: `${REPOSITORY_URL}/issues/new?template=bug_report.yml`,

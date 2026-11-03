@@ -36,6 +36,8 @@ import {
   Pin,
   RefreshCw,
   Scissors,
+  Settings,
+  ArrowUpCircle,
   Sun,
   TextCursorInput,
   Trash2,
@@ -48,7 +50,11 @@ import { ConfirmDialog, ConflictDialog, NameDialog, ReportDialog } from "../feat
 import { Sidebar } from "../features/navigation/Sidebar";
 import { usePreferences, type ThemePreference } from "../features/settings/preferences";
 import { ShortcutsDialog } from "../features/settings/ShortcutsDialog";
-import { AboutDialog } from "../features/settings/AboutDialog";
+import { AboutDialog, type AboutSection } from "../features/settings/AboutDialog";
+import { SettingsDialog, type SettingsSection } from "../features/settings/SettingsDialog";
+import { UpdateDialog } from "../features/updates/UpdateDialog";
+import { UpdateNotice } from "../features/updates/UpdateNotice";
+import { useUpdates } from "../features/updates/useUpdates";
 import { HelpCenter, type HelpAction } from "../features/help/HelpCenter";
 import { IssueDialog } from "../features/help/IssueDialog";
 import { userNamesFrom, type IssueKind } from "../features/help/report";
@@ -79,7 +85,10 @@ type DialogState =
   | { type: "runExecutable"; entry: FileEntry }
   | { type: "report"; title: string; report: OperationReport | null }
   | { type: "shortcuts" }
-  | { type: "about" }
+  | { type: "about"; section?: AboutSection }
+  | { type: "settings"; section?: SettingsSection }
+  | { type: "update" }
+  | { type: "closeBlocked"; running: number }
   | { type: "welcome" }
   | { type: "help" }
   | { type: "issue"; kind: IssueKind };
@@ -213,6 +222,27 @@ export function App() {
     [notify, refreshAllFolders],
   );
   const ops = useOperations(onOperationFinished);
+
+  // ---- Updates and closing --------------------------------------------------------
+
+  const updates = useUpdates({
+    onLastInstall: (version, installed) =>
+      installed
+        ? notify("success", `Nexdir was updated to ${version}.`)
+        : notify("error", `The update to ${version} was not installed.`, "The installer was cancelled or failed; your current version keeps working. You can try again from Help → Check for Updates."),
+  });
+
+  const openUpdates = useCallback(() => {
+    setMenu(null);
+    setDialog({ type: "update" });
+    // Opening the window starts a check unless one already has a result or a download runs.
+    if (!updates.state || updates.state.phase === "idle" || updates.state.phase === "error" || updates.state.phase === "upToDate") void updates.check();
+  }, [updates]);
+
+  useEffect(() => {
+    const unlisten = api.onCloseBlocked((running) => setDialog({ type: "closeBlocked", running }));
+    return () => void unlisten.then((f) => f()).catch(() => {});
+  }, []);
 
   const startTransfer = useCallback(
     async (kind: TransferKind, sources: string[], destination: string, policy: ConflictPolicy) => {
@@ -443,6 +473,7 @@ export function App() {
       { id: "help", label: "Help & Support", icon: <LifeBuoy size={15} />, onSelect: () => setDialog({ type: "help" }) },
       { id: "tour", label: "Take a Tour", icon: <Sparkles size={15} />, onSelect: () => helpAction("tour") },
       { id: "shortcuts", label: "Keyboard shortcuts", icon: <Keyboard size={15} />, shortcut: "F1", onSelect: () => helpAction("shortcuts") },
+      { id: "updates", label: "Check for Updates…", icon: <ArrowUpCircle size={15} />, onSelect: openUpdates },
       "separator",
       { id: "documentation", label: "Documentation", icon: <BookOpen size={15} />, onSelect: () => helpAction("documentation") },
       { id: "bug", label: "Report a Bug…", icon: <Bug size={15} />, onSelect: () => helpAction("bug") },
@@ -452,7 +483,7 @@ export function App() {
       "separator",
       { id: "about", label: "About Nexdir", icon: <BadgeInfo size={15} />, onSelect: () => helpAction("about") },
     ],
-    [helpAction],
+    [helpAction, openUpdates],
   );
 
   const userNames = useMemo(() => userNamesFrom(knownFolders.find((f) => /[\\/]Users[\\/]/i.test(f.path))?.path), [knownFolders]);
@@ -702,6 +733,9 @@ export function App() {
         >
           <ThemeIcon size={16} />
         </button>
+        <button type="button" className="nx-icon-button" aria-label="Settings" title="Settings" onClick={() => setDialog({ type: "settings" })}>
+          <Settings size={16} />
+        </button>
         <button
           type="button"
           className="nx-icon-button"
@@ -899,7 +933,62 @@ export function App() {
       )}
       {dialog?.type === "report" && <ReportDialog title={dialog.title} report={dialog.report} onClose={() => setDialog(null)} />}
       {dialog?.type === "shortcuts" && <ShortcutsDialog onClose={() => setDialog(null)} />}
-      {dialog?.type === "about" && <AboutDialog onClose={() => setDialog(null)} />}
+      {dialog?.type === "about" && (
+        <AboutDialog
+          section={dialog.section}
+          updateInfo={updates.info}
+          onCheckForUpdates={openUpdates}
+          openUrl={(url) => void openUrl(url)}
+          openProjectUrl={(url) => api.openProjectUrl(url)}
+          copyText={(text) => navigator.clipboard.writeText(text)}
+          notify={notify}
+          discordInvite={DISCORD_INVITE}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === "settings" && (
+        <SettingsDialog
+          prefs={prefs}
+          updatePrefs={updatePrefs}
+          updates={updates}
+          section={dialog.section}
+          onCheckForUpdates={openUpdates}
+          onOpenUrl={(url) => void openUrl(url)}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === "update" && <UpdateDialog updates={updates} onClose={() => setDialog(null)} onOpenSettings={() => setDialog({ type: "settings", section: "updates" })} />}
+      {dialog?.type === "closeBlocked" && (
+        <ConfirmDialog
+          title="Close Nexdir?"
+          message={`${pluralize(dialog.running, "file operation")} ${dialog.running === 1 ? "is" : "are"} still running.`}
+          detail={
+            <p className="nx-muted">
+              Closing cancels {dialog.running === 1 ? "it" : "them"}. The file being copied is finished or cleaned up safely, but the remaining items are not copied or moved. Existing files are
+              never left half-written.
+            </p>
+          }
+          confirmLabel="Cancel Operations and Close"
+          cancelLabel="Keep Nexdir Open"
+          focusCancel
+          danger
+          onClose={() => setDialog(null)}
+          onConfirm={() => void api.confirmClose().catch((e) => notify("error", "Nexdir could not close.", errorMessage(e)))}
+        />
+      )}
+      {updates.notice && updates.info && !dialog && (
+        <UpdateNotice
+          offer={updates.notice}
+          currentVersion={updates.info.currentVersion}
+          onViewChanges={() => void updates.openRelease()}
+          onDownload={() => {
+            updates.dismissNotice();
+            setDialog({ type: "update" });
+          }}
+          onRemindLater={() => updates.snooze(updates.notice!.version)}
+          onDismiss={updates.dismissNotice}
+        />
+      )}
       {dialog?.type === "welcome" && (
         <WelcomeDialog
           onStart={() => startTour()}

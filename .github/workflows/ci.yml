@@ -68,8 +68,11 @@ jobs:
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - run: npm ci
       - run: npm audit --audit-level=moderate
-      # The license texts shipped with the release must match the dependencies.
+      # The license texts shipped with the release (and the in-app license list generated from
+      # the same data) must match the dependencies; unknown or unreviewed licenses fail here.
       - run: python tools/release/third_party_notices.py --check
+      # Update feed generator: signature checks against real Tauri signatures (test key).
+      - run: python -m unittest discover -s tools/release/tests -v
       - name: cargo audit (RustSec advisory database)
         run: |
           cargo install cargo-audit --version 0.22.2 --locked

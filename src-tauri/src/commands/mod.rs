@@ -107,6 +107,13 @@ pub async fn open_url(url: String) -> AppResult<()> {
     blocking(move || platform::open_url(&url).map_err(|e| AppError::new(ErrorCode::Io, format!("Could not open the browser: {e}")))).await
 }
 
+/// Opens the project page of a bundled third-party component (About → Open Source Licenses).
+#[tauri::command]
+pub async fn open_project_url(url: String) -> AppResult<()> {
+    security::validate_project_url(&url)?;
+    blocking(move || platform::open_url(&url).map_err(|e| AppError::new(ErrorCode::Io, format!("Could not open the browser: {e}")))).await
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
@@ -228,6 +235,32 @@ pub async fn preview_path(path: String) -> AppResult<filesystem::preview::Previe
     blocking(move || filesystem::preview::preview(&path)).await
 }
 
+static CLOSE_CONFIRMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn close_confirmed() -> bool {
+    CLOSE_CONFIRMED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// The user chose to close Nexdir although file operations are running: they are cancelled
+/// (cancelling finishes the current file safely, see `operations::transfer`), then Nexdir exits.
+#[tauri::command]
+pub async fn confirm_close(app: AppHandle) -> AppResult<()> {
+    CLOSE_CONFIRMED.store(true, std::sync::atomic::Ordering::SeqCst);
+    let handle = app.clone();
+    blocking(move || {
+        let manager = handle.state::<OperationManager>();
+        manager.cancel_all();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        while manager.busy() > 0 && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        Ok(())
+    })
+    .await?;
+    app.exit(0);
+    Ok(())
+}
+
 /// Registers state that commands depend on.
 pub fn init_state(app: &AppHandle) {
     use tauri::Emitter;
@@ -254,5 +287,6 @@ pub fn init_state(app: &AppHandle) {
         let _ = tools::spawn_index_build(&paths, &tasks);
     }
     app.manage(tasks);
+    app.manage(crate::updater::UpdaterState::init(&paths));
     app.manage(paths);
 }

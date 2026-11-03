@@ -184,9 +184,56 @@ pub fn validate_external_url(url: &str) -> AppResult<()> {
     Err(invalid())
 }
 
+/// The license index shown in About Nexdir, embedded at build time.
+const LICENSE_INDEX: &str = include_str!("../../../src/generated/licenses.json");
+
+fn project_urls() -> &'static std::collections::HashSet<String> {
+    static URLS: std::sync::OnceLock<std::collections::HashSet<String>> = std::sync::OnceLock::new();
+    URLS.get_or_init(|| {
+        let index: serde_json::Value = serde_json::from_str(LICENSE_INDEX).unwrap_or_default();
+        index["components"]
+            .as_array()
+            .map(|list| list.iter().filter_map(|c| c["source"].as_str().map(str::to_owned)).collect())
+            .unwrap_or_default()
+    })
+}
+
+/// Project pages of bundled third-party components (Open Source Licenses). Only addresses
+/// listed in the license index Nexdir was built with are opened, and only over HTTPS.
+pub fn validate_project_url(url: &str) -> AppResult<()> {
+    let ok = url.len() <= MAX_URL_LEN
+        && url.starts_with("https://")
+        && url.bytes().all(|b| b.is_ascii_graphic() && b != b'"')
+        && project_urls().contains(url);
+    if ok {
+        Ok(())
+    } else {
+        Err(AppError::new(
+            ErrorCode::Unsupported,
+            "Nexdir only opens the project pages listed in its license information.",
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_urls_come_from_the_license_index() {
+        assert!(project_urls().len() > 100, "index embedded");
+        assert!(validate_project_url("https://github.com/tauri-apps/tauri").is_ok());
+        assert!(validate_project_url("https://sqlite.org/copyright.html").is_ok());
+        for bad in [
+            "https://evil.example/",
+            "http://github.com/tauri-apps/tauri",
+            "https://github.com/tauri-apps/tauri/../x",
+            "https://github.com/tauri-apps/tauri\"",
+            "",
+        ] {
+            assert!(validate_project_url(bad).is_err(), "{bad}");
+        }
+    }
 
     #[test]
     fn accepts_normal_absolute_paths() {

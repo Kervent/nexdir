@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-ack-last-install"
+description = "Enables the update_ack_last_install command without any pre-configured scope."
+commands.allow = ["update_ack_last_install"]
+
+[[permission]]
+identifier = "deny-update-ack-last-install"
+description = "Denies the update_ack_last_install command without any pre-configured scope."
+commands.deny = ["update_ack_last_install"]

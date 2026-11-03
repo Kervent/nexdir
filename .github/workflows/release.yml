@@ -1,10 +1,15 @@
 name: Release
 
 # Started by hand only (Actions -> Release -> Run workflow), with an existing version tag such as
-# v0.4.3. Builds the release files from that tag and creates a *draft* release, so a maintainer
-# reviews everything before anything is published. Pushing a tag does not start it, and it
-# refuses tags that already have a release, so files uploaded to an existing release are never
-# replaced.
+# v0.5.0-alpha.1. Builds the release files from that tag and creates a *draft* release, so a
+# maintainer reviews everything before anything is published. Pushing a tag does not start it,
+# and it refuses tags that already have a release, so files uploaded to an existing release
+# (such as v0.4.3) are never replaced.
+#
+# Installers are signed for Nexdir's updater with the key in the repository secrets
+# TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD (docs/updates/signing.md).
+# Without them the build stops: unsigned update files are never released. Publishing the draft
+# is a manual step; only then does the update-feed workflow offer the release to users.
 on:
   workflow_dispatch:
     inputs:
@@ -49,6 +54,15 @@ jobs:
           $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           if ($env:TAG -ne "v$version") { throw "Tag $env:TAG does not match version $version in tauri.conf.json" }
 
+      - name: Check that update signing is set up
+        shell: pwsh
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          $pubkey = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).plugins.updater.pubkey
+          if (-not $pubkey) { throw "tauri.conf.json has no updater public key (plugins.updater.pubkey)." }
+          if ($env:HAS_KEY -ne 'true') { throw "The TAURI_SIGNING_PRIVATE_KEY secret is missing; unsigned update files are not released." }
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -60,14 +74,30 @@ jobs:
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       # Optional Discord invite for Help & Support: a repository *variable* (not a secret), e.g.
       # https://discord.gg/abc123. Empty means the Discord entry is shown as unavailable.
-      - run: npx tauri build
+      # The signing key is only given to this step. tauri.release.conf.json turns on
+      # createUpdaterArtifacts, which writes a .sig next to each installer; the key itself is
+      # never written to disk or printed.
+      - run: npx tauri build --config src-tauri/tauri.release.conf.json
         env:
           VITE_NEXDIR_DISCORD_INVITE: ${{ vars.NEXDIR_DISCORD_INVITE }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      # Every release has written notes; they become the release text and the updater shows them.
+      - name: Release notes file
+        id: notes
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          $path = "docs/release/notes-$($env:TAG.Substring(1)).md"
+          if (-not (Test-Path $path)) { throw "Missing $path" }
+          "path=$path" >> $env:GITHUB_OUTPUT
 
       # Same script as for local release builds (see docs/release/process.md).
       - name: Collect artifacts and checksums
         shell: pwsh
-        run: ./tools/release/package.ps1 -OutDir out
+        run: ./tools/release/package.ps1 -OutDir out -RequireSignatures
 
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
@@ -75,4 +105,5 @@ jobs:
           draft: true
           # 0.x versions are alpha/beta: always marked as pre-release.
           prerelease: ${{ contains(inputs.tag, '-') || startsWith(inputs.tag, 'v0.') }}
+          body_path: ${{ steps.notes.outputs.path }}
           files: out/*

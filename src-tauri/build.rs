@@ -3,6 +3,13 @@ fn main() {
     // `allow-<command>` permission for each, and only the ones referenced in
     // capabilities/main.json are reachable from the WebView.
     println!("cargo:rerun-if-changed=windows-app-manifest.xml");
+    // Test binaries get the same manifest (common controls v6), which Tauri's mock runtime in
+    // the updater tests needs to load.
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        let manifest = std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("windows-app-manifest.xml");
+        println!("cargo:rustc-link-arg-tests=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg-tests=/MANIFESTINPUT:{}", manifest.display());
+    }
     let windows = tauri_build::WindowsAttributes::new().app_manifest(include_str!("windows-app-manifest.xml"));
     tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows).app_manifest(
         tauri_build::AppManifest::new().commands(&[
@@ -17,6 +24,7 @@ fn main() {
             "open_path",
             "show_properties",
             "open_url",
+            "open_project_url",
             "system_info",
             "find_conflicts",
             "start_operation",
@@ -43,6 +51,16 @@ fn main() {
             "rules_save",
             "organize_preview",
             "organize_apply",
+            "confirm_close",
+            "update_info",
+            "update_ack_last_install",
+            "update_save_settings",
+            "update_check",
+            "update_download",
+            "update_cancel",
+            "update_snooze",
+            "update_install",
+            "update_open_release",
         ]),
     ))
     .expect("failed to run tauri-build");

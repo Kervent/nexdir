@@ -17,7 +17,8 @@ to apply is described in [team roles](docs/community/team-roles.md).
 1. **User data comes first.** No code path may delete, overwrite or move user data without
    an explicit user decision. When in doubt, refuse and report an error.
 2. **Correctness before features.** A smaller, reliable change is better than a large one.
-3. **Privacy.** No telemetry, analytics, network calls or cloud services.
+3. **Privacy.** No telemetry, analytics or cloud services. The update check to GitHub is the only
+   network access; do not add others (see [docs/updates/README.md](docs/updates/README.md)).
 4. **Tests use temporary directories only.** Never point destructive tests at real folders.
 
 ## Development setup

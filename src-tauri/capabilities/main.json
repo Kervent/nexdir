@@ -18,6 +18,7 @@
     "allow-open-path",
     "allow-show-properties",
     "allow-open-url",
+    "allow-open-project-url",
     "allow-system-info",
     "allow-find-conflicts",
     "allow-start-operation",
@@ -43,6 +44,16 @@
     "allow-rules-get",
     "allow-rules-save",
     "allow-organize-preview",
-    "allow-organize-apply"
+    "allow-organize-apply",
+    "allow-confirm-close",
+    "allow-update-info",
+    "allow-update-ack-last-install",
+    "allow-update-save-settings",
+    "allow-update-check",
+    "allow-update-download",
+    "allow-update-cancel",
+    "allow-update-snooze",
+    "allow-update-install",
+    "allow-update-open-release"
   ]
 }

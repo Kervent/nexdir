@@ -98,7 +98,25 @@ are written atomically (`store.rs`); the index lives in the app's local data fol
 - **Issue reports** (`src/features/help/report.ts`, `IssueDialog.tsx`): form → local cleaning
   (paths, user name, e-mail, secrets) → review → prefilled GitHub issue-form link (field ids
   match `.github/ISSUE_TEMPLATE/*.yml`); above 6,000 characters the report goes through the
-  clipboard. `system_info` reads version facts locally. Nexdir makes no network requests.
+  clipboard. `system_info` reads version facts locally.
+
+## Updates and licenses (0.5.0)
+
+- **Updater** (`src-tauri/src/updater/`): `feed.rs` validates the channel feed (pure function,
+  unit-tested), `mod.rs` holds the state machine (idle → checking → available → downloading →
+  readyToInstall → installing, or upToDate/error) and the commands. The feed is fetched with
+  reqwest (HTTPS only, no redirects, 256 KB limit, timeouts); download, signature verification
+  and installer start are done by the official `tauri-plugin-updater` through
+  `Updater::restore_update`, which always requires the signature to name the version. The
+  WebView gets no updater plugin permissions — only Nexdir's own `update_*` commands.
+  Settings live in `update-settings.json` (config folder) so the backend decides whether an
+  automatic check may run. See [docs/updates](../updates/README.md).
+- **Close guard**: closing the window while copy/move jobs run is intercepted
+  (`CloseRequested` → `close-blocked` event → confirmation → `confirm_close`).
+- **Licenses**: `tools/release/third_party_notices.py` writes `THIRD-PARTY-NOTICES.txt` and the
+  index used by *About → Open Source Licenses* (`src/generated/`); texts are a separate chunk
+  loaded on demand. Project links open only if they are in that index
+  (`security::validate_project_url`). See [docs/licenses.md](../licenses.md).
 
 ## Data flow example: paste
 

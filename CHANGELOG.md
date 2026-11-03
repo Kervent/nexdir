@@ -6,6 +6,40 @@ All notable changes to Nexdir are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0-alpha.1] — unreleased — updates, licenses and credits (alpha pre-release)
+
+### Added
+- **Update check and in-app updates** with the official Tauri updater: *Help → Check for
+  Updates*, *About Nexdir* and *Settings → Updates*. The update window shows installed and
+  available version, date, channel, size, signature status, release notes, real download
+  progress and speed. Nothing is downloaded without *Download Update* and nothing installed
+  without confirming *Close Nexdir and Install*.
+- **Signed updates:** installers are verified against Nexdir's public update key; the signature
+  must name the announced version (`requireSignedVersion`). Tampered files, foreign keys, older
+  versions and the wrong installer type (MSI vs. per-user setup) are refused.
+- **Release channels** *Stable* and *Beta (Preview)*, fed from `stable.json` / `preview.json`
+  on the `update-feed` branch, generated from the published GitHub releases after verifying their
+  signatures. Switching channels never installs an older version; the empty Stable channel says so.
+- **Automatic checks** (off by default): after start, at most once per day or week, never in
+  parallel, quiet when offline; a small notice with *View Changes*, *Download Update* and
+  *Remind Me Later*.
+- **Settings** dialog (gear button): appearance and updates.
+- **About Nexdir** with *Open Source Licenses* (all bundled components, search, license and type
+  filter, full texts offline, project link, copy) and *Technologies & Credits*; build
+  information (commit and date).
+- **Close guard:** closing Nexdir while copies or moves run asks first.
+- Portable copies announce updates and open the download page; they never change themselves.
+
+### Changed
+- `THIRD-PARTY-NOTICES.txt` now also lists the native SQLite and WebView2 loader code with their
+  license texts, documents copyleft (MPL-2.0) components and lists development tools as not
+  distributed. The same generator writes the in-app license index; CI checks both.
+- Privacy statements updated: the update check is the only connection Nexdir makes itself.
+- Release workflow: requires the update signing key, signs both installers, verifies the
+  signatures, attaches the `.sig` files and uses `docs/release/notes-<version>.md`.
+- Minimum Rust version 1.90 (required by the updater plugin). MSI upgrade code pinned to the
+  value 0.4.3 used.
+
 ## [0.4.3] — 2026-11-01 — UX, onboarding and support (alpha pre-release, first public release)
 
 ### Added

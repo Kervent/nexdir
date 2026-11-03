@@ -25,11 +25,25 @@ export function Dialog({ title, children, footer, onClose, initialFocus, classNa
     return () => previous?.focus?.();
   }, [initialFocus]);
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
+  // Escape closes the topmost dialog wherever focus is — also after the focused button was
+  // disabled (e.g. "Check Again" while checking) and focus fell back to the page.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const dialogs = document.querySelectorAll(".nx-dialog");
+      if (dialogs[dialogs.length - 1] !== ref.current) return;
+      e.preventDefault();
       e.stopPropagation();
-      onClose();
-    } else if (e.key === "Tab" && ref.current) {
+      closeRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab" && ref.current) {
       const focusable = ref.current.querySelectorAll<HTMLElement>("input:not(:disabled), button:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex='0']");
       const first = focusable[0];
       const last = focusable[focusable.length - 1];

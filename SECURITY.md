@@ -38,6 +38,10 @@ Until 1.0, only the latest release receives security fixes.
 - Recursive copies never follow symbolic links or junctions.
 - Programs, scripts and shortcuts only run after a confirmation dialog, enforced in the
   backend as well.
-- No telemetry, no network access, no auto-updater.
+- No telemetry. The only network access is the update check to GitHub (manual, or automatic if
+  enabled; off by default). Updates are downloaded and installed only after the user confirms,
+  and only if their minisign signature from the Nexdir update key — bound to the announced
+  version — verifies ([docs/updates/signing.md](docs/updates/signing.md)). Downgrades are
+  refused.
 
 Details: [docs/security/threat-model.md](docs/security/threat-model.md).

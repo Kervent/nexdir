@@ -311,6 +311,14 @@ pub fn volume_info(root: &str) -> io::Result<VolumeInfo> {
     })
 }
 
+/// Free space available to this user on the volume that holds `dir`.
+pub fn free_space(dir: &Path) -> io::Result<u64> {
+    let w = wide(dir.as_os_str());
+    let mut avail = 0u64;
+    unsafe { GetDiskFreeSpaceExW(PCWSTR(w.as_ptr()), Some(&mut avail), None, None) }.map_err(win_err)?;
+    Ok(avail)
+}
+
 /// RAII guard for a single-threaded COM apartment on the current thread.
 struct ComApartment;
 

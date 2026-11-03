@@ -1,13 +1,13 @@
 [package]
 name = "nexdir"
-version = "0.4.3"
+version = "0.5.0-alpha.1"
 description = "A modern, intelligent, open-source file manager for Windows."
 authors = ["Nexdir contributors"]
 license = "MIT"
 repository = "https://github.com/Kervent/nexdir"
 homepage = "https://github.com/Kervent/nexdir"
 edition = "2021"
-rust-version = "1.88"
+rust-version = "1.90"
 
 [lib]
 name = "nexdir_lib"
@@ -26,6 +26,13 @@ base64 = "0.23.1"
 blake3 = "1.8.7"
 rusqlite = { version = "0.41.1", features = ["bundled"] }
 tauri-plugin-window-state = "2.5.0"
+# Official Tauri updater: downloads installers and verifies their minisign signatures.
+# Default features include a ZIP extractor that Windows installers do not need.
+tauri-plugin-updater = { version = "2.14.1", default-features = false, features = ["rustls-tls", "system-proxy"] }
+# Same versions the updater uses (no extra copies): HTTP client for the update feeds.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+semver = "1.0.27"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = [
@@ -43,7 +50,14 @@ windows = { version = "0.62.2", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
+[features]
+# Test builds only: lets NEXDIR_TEST_FEED_BASE / NEXDIR_TEST_DOWNLOAD_BASE point the updater at a
+# local test server. Release builds never enable it (see docs/updates/testing.md).
+updater-test = []
+
 [dev-dependencies]
+# Mock runtime for the updater signature tests.
+tauri = { version = "2.12.5", features = ["test"] }
 tempfile = "3.27.0"
 
 [profile.release]

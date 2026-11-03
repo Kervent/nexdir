@@ -14,6 +14,13 @@ versions may contain breaking changes.
 | Pre-release | `v0.4.0-beta.1`, `v0.4.0-rc.1` | tick *Set as a pre-release* | only if `DISCORD_ANNOUNCE_PRERELEASES` is `true`; marked "not a stable version"; Beta Updates role |
 | Test build | — | don't create a release; use the CI artifact of a workflow run | never |
 
+The release type also decides the update channel: a published release that is not a GitHub
+pre-release and has no `-suffix` reaches the **Stable** channel; every published release reaches
+**Beta (Preview)** ([feeds.md](../updates/feeds.md)). While Nexdir is `0.x`, use pre-release
+identifiers such as `0.5.0-alpha.1`, `0.5.0-beta.1`. MSI versions must be numeric: set
+`bundle.windows.wix.version` to `0.5.0.<n>` for a pre-release (alpha.1 → `0.5.0.1`, later
+pre-releases count up; the stable `0.5.0` may drop the setting) so MSI upgrades keep working.
+
 A tag with a `-suffix` is always treated as a pre-release, even if the GitHub checkbox was
 forgotten. Write `[skip discord]` anywhere in the release notes to publish without an
 announcement.
@@ -22,7 +29,10 @@ announcement.
 
 1. **Prepare** on a branch, through a normal pull request:
    - set the version in `package.json` (`npm version 0.4.0 --no-git-tag-version`, which also
-     updates `package-lock.json`), `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`;
+     updates `package-lock.json`), `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`
+     (and `bundle.windows.wix.version` for pre-releases, see above);
+   - write the release notes as `docs/release/notes-<version>.md` — the Release workflow requires
+     the file, uses it as the release text, and Nexdir's update window shows it;
    - run `cargo check --manifest-path src-tauri/Cargo.toml` to update `Cargo.lock`;
    - move the `## [Unreleased]` entries in `CHANGELOG.md` to `## [0.4.0] — YYYY-MM-DD`;
    - make sure CI is green, then merge.
@@ -36,15 +46,19 @@ announcement.
    - **In GitHub Actions:** *Actions → Release → Run workflow*, enter the tag. The workflow
      checks that the tag matches the version in `tauri.conf.json`, runs the tests, builds and
      creates a **draft release** with `Nexdir-<version>-Setup.exe`, `Nexdir-<version>-Portable.zip`,
-     `Nexdir-<version>.msi` and `SHA256SUMS.txt`, collected by
+     `Nexdir-<version>.msi`, the update signatures `…-Setup.exe.sig` and `….msi.sig`, and
+     `SHA256SUMS.txt`, collected by
      [`tools/release/package.ps1`](../../tools/release/package.ps1). All 0.x versions and tags with
      `-` are marked as pre-releases. It refuses a tag that already has a release, so files that
-     were uploaded by hand are never replaced.
+     were uploaded by hand are never replaced. It stops if the update signing key
+     ([signing.md](../updates/signing.md)) is not configured: unsigned update files are never
+     released.
    - **Locally** (as for 0.4.3, where the tested files were uploaded):
      ```bash
      npm ci
-     npm run app:build
-     powershell -ExecutionPolicy Bypass -File tools/release/package.ps1 -Clean
+     # with TAURI_SIGNING_PRIVATE_KEY / _PASSWORD set from the key file (never typed or printed)
+     npx tauri build --config src-tauri/tauri.release.conf.json
+     powershell -ExecutionPolicy Bypass -File tools/release/package.ps1 -Clean -RequireSignatures
      gh release create v0.4.0 --draft --prerelease --notes-file <notes.md> release-out/*
      ```
      Output: `release-out/` (ignored by Git). The script refuses stale bundles from an older
@@ -60,8 +74,12 @@ announcement.
      [release checklist](checklist.md);
    - paste the changelog section as release notes. Top-level bullet points become the
      "What's new" list on Discord (up to 8), so put the most important ones first.
-5. **Publish** the draft. The *Discord announcements* workflow posts to #releases within a
-   minute. Check the run log if nothing appears; a missing webhook secret is logged, not an error.
+5. **Publish** the draft. Two workflows react:
+   - *Update feed* verifies the signatures again and updates `stable.json` / `preview.json` on the
+     `update-feed` branch; from then on Nexdir offers the release. Check its log: it names the
+     version per channel and warns about every release it left out.
+   - *Discord announcements* posts to #releases within a minute. Check the run log if nothing
+     appears; a missing webhook secret is logged, not an error.
 6. **After the release:** close the milestone (announced in #roadmap), update
    [ROADMAP.md](../ROADMAP.md) if plans changed.
 
@@ -72,8 +90,11 @@ Releases are not code-signed yet, so Windows SmartScreen may warn. See
 
 - **Broken build in the draft:** delete the draft and the tag, fix, tag again. Drafts are never
   announced.
-- **Published by mistake:** edit the release and mark it as pre-release or draft. The Discord
-  message, if already posted, must be removed by hand in Discord.
+- **Published by mistake:** edit the release and mark it as pre-release or draft. The update
+  feed follows automatically (a draft is dropped; a pre-release leaves the Stable channel). The
+  Discord message, if already posted, must be removed by hand in Discord.
+- **A bad release reached users:** unpublish it (the feed drops it) and publish a fixed, *higher*
+  version; Nexdir never installs an older version, so users who updated wait for the fix.
 - **Announcement missing:** run *Actions → Discord announcements → Run workflow*, kind
   "release", the tag, untick *dry_run*. Already announced releases are not posted twice.
 

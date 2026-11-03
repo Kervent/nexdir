@@ -17,6 +17,7 @@ import type {
   TransferKind,
 } from "../types/fs";
 import type { SystemInfo } from "../features/help/report";
+import type { CheckResult, UpdateInfo, UpdateProgress, UpdateSnapshot, UserUpdateSettings } from "../features/updates/types";
 import type { DuplicateRemoval, IndexSettings, IndexStatus, Plan, Rule, SearchQuery, SearchResult, TaskProgress } from "../types/tools";
 
 export function isApiError(value: unknown): value is ApiError {
@@ -43,6 +44,8 @@ export const api = {
   recycleDuplicates: (groups: DuplicateRemoval[]) => invoke<RecycleResult>("recycle_duplicates", { groups }),
   /** Opens a project web page (GitHub, Discord) in the browser; other addresses are refused. */
   openUrl: (url: string) => invoke<void>("open_url", { url }),
+  /** Opens a third-party project page listed in the bundled license index. */
+  openProjectUrl: (url: string) => invoke<void>("open_project_url", { url }),
   systemInfo: () => invoke<SystemInfo>("system_info"),
   openPath: (path: string, allowExecutable = false) => invoke<void>("open_path", { path, allowExecutable }),
   showProperties: (path: string) => invoke<void>("show_properties", { path }),
@@ -76,6 +79,22 @@ export const api = {
   rulesSave: (rules: Rule[]) => invoke<void>("rules_save", { rules }),
   organizePreview: (rule: Rule) => invoke<Plan>("organize_preview", { rule }),
   organizeApply: (rule: Rule, sources: string[]) => invoke<number>("organize_apply", { rule, sources }),
+  /** Closes Nexdir after cancelling running copy/move jobs (the user confirmed it). */
+  confirmClose: () => invoke<void>("confirm_close"),
+  onCloseBlocked: (handler: (running: number) => void): Promise<UnlistenFn> => listen<number>("close-blocked", (event) => handler(event.payload)),
+  // Updates: checks contact GitHub only when the user clicks or enabled automatic checks.
+  updateInfo: () => invoke<UpdateInfo>("update_info"),
+  updateAckLastInstall: () => invoke<void>("update_ack_last_install"),
+  updateSaveSettings: (settings: UserUpdateSettings) => invoke<UpdateInfo>("update_save_settings", { settings }),
+  updateCheck: (automatic: boolean) => invoke<CheckResult>("update_check", { automatic }),
+  updateDownload: () => invoke<UpdateSnapshot>("update_download"),
+  updateCancel: () => invoke<UpdateSnapshot>("update_cancel"),
+  updateSnooze: (version: string) => invoke<void>("update_snooze", { version }),
+  updateInstall: () => invoke<void>("update_install"),
+  updateOpenRelease: () => invoke<void>("update_open_release"),
+  onUpdateState: (handler: (s: UpdateSnapshot) => void): Promise<UnlistenFn> => listen<UpdateSnapshot>("update-state", (event) => handler(event.payload)),
+  onUpdateProgress: (handler: (p: UpdateProgress) => void): Promise<UnlistenFn> =>
+    listen<UpdateProgress>("update-progress", (event) => handler(event.payload)),
   onOperationProgress: (handler: (p: OperationProgress) => void): Promise<UnlistenFn> =>
     listen<OperationProgress>("operation-progress", (event) => handler(event.payload)),
 };

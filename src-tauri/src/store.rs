@@ -22,6 +22,9 @@ impl AppPaths {
     pub fn index_settings_file(&self) -> PathBuf {
         self.config_dir.join("index-settings.json")
     }
+    pub fn update_settings_file(&self) -> PathBuf {
+        self.config_dir.join("update-settings.json")
+    }
     pub fn index_db(&self) -> PathBuf {
         self.data_dir.join("index").join("index.sqlite")
     }

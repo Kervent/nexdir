@@ -12,6 +12,11 @@ Requirements: Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime
 (preinstalled on Windows 11 and current Windows 10). If Nexdir does not start,
 install WebView2 from https://developer.microsoft.com/microsoft-edge/webview2/
 
+Updates: Help > Check for Updates tells you about new versions, but the portable
+edition is never changed automatically. To update, close Nexdir and replace
+Nexdir.exe with the one from the new ZIP; your settings are kept. Nexdir only
+connects to GitHub when you check for updates (or turn on automatic checks).
+
 This build is not code-signed, so Windows SmartScreen may show a warning.
 Verify the ZIP with SHA256SUMS.txt from the release page before running it.
 

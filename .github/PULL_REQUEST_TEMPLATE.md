@@ -24,7 +24,7 @@
 - [ ] No operation can delete, overwrite or move user data without an explicit user decision.
 - [ ] Destructive tests only use temporary directories; no personal files were used as test data.
 - [ ] New IPC commands validate their input in Rust and are listed in `build.rs` and `capabilities/main.json`.
-- [ ] No telemetry, tracking or network access was added.
+- [ ] No telemetry, tracking or network access was added (the update check is the only allowed connection).
 - [ ] No secrets, tokens or webhook URLs are included.
 
 ## Docs

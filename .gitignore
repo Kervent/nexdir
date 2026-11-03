@@ -52,3 +52,5 @@ release-out/
 
 # Local assistant/agent configuration
 .claude/
+# Separate build folders for tests (performance runs, updater test builds)
+src-tauri/target-*/

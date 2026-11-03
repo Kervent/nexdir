@@ -36,8 +36,11 @@ A modern, intelligent, open-source file manager for Windows.</p>
   Bin. It never replaces an existing file without asking. A replacement is written to a verified
   temporary copy first, so a cancelled or failed copy cannot destroy the original. Copying a
   folder never follows links or junctions.
-- **Private.** No telemetry, no ads, no accounts, no cloud. Nexdir makes no network requests of
-  its own; web pages (documentation, GitHub) open in your browser only when you click a link.
+- **Private.** No telemetry, no ads, no accounts, no cloud. The only connection Nexdir makes
+  itself is the update check to GitHub — when you click *Check for Updates*, or regularly if you
+  turn on automatic checks (off by default). It sends no file names, paths or personal data
+  ([details](docs/updates/README.md#privacy)). Web pages open in your browser only when you click
+  a link.
 - **Fast.** A Rust backend does all file work off the UI thread, and lists are virtualised. A
   folder with 20,000 files opens in about 0.1 s.
 - **Modern.** A Windows 11-style interface with light, dark and system themes and full keyboard
@@ -58,6 +61,8 @@ A modern, intelligent, open-source file manager for Windows.</p>
 | Duplicate finder | Byte-identical files (BLAKE3); always keeps at least one verified copy (checked again in the backend before anything is removed); hard links are recognised |
 | Organize | Rules that move or copy files, with a preview and confirmation before anything changes |
 | Help | First-start tour of the interface, offline help, in-app bug reports and feature requests that open a prefilled GitHub form after you review them |
+| Updates | Check for updates on GitHub (manually, or automatically if you turn it on), Stable and Beta (Preview) channels, signed updates installed only after you confirm; the portable version only announces new releases |
+| About | Version and build, all open-source licenses (searchable, offline), technologies and credits |
 
 <table>
   <tr>
@@ -115,6 +120,11 @@ Get-FileHash .\Nexdir-0.4.3-Setup.exe -Algorithm SHA256
 The result must match the line for that file in `SHA256SUMS.txt`. See
 [docs/release/code-signing.md](docs/release/code-signing.md).
 
+**Updating.** From 0.5.0 on, *Help → Check for Updates* finds new versions and installs them
+after you confirm; the update's signature is checked first. Version 0.4.3 has no updater:
+install 0.5.0 once over it (your settings are kept). The portable version is updated by replacing
+`Nexdir.exe` with the one from the new ZIP. See [docs/updates/README.md](docs/updates/README.md).
+
 **Uninstalling.** Use *Settings → Apps*. Your settings are kept unless you tick *Delete the
 application data* in the uninstaller. The portable version stores its data in
 `%APPDATA%\org.nexdir.desktop` and `%LOCALAPPDATA%\org.nexdir.desktop`.
@@ -156,6 +166,7 @@ nothing is sent until you submit it there. You can also open an
 | User interface | React 19 and TypeScript, built with Vite; icons from Lucide |
 | Search index | SQLite with FTS5 (bundled through `rusqlite`) |
 | Hashing | BLAKE3 |
+| Updates | Official Tauri updater (minisign signatures), update feeds on GitHub |
 | Tests | Vitest and Testing Library (frontend), `cargo test` (backend) |
 | Tools | Python scripts for the Discord community setup and release announcements (not part of the app) |
 

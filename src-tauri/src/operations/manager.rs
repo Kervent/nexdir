@@ -96,6 +96,26 @@ impl OperationManager {
             .collect()
     }
 
+    /// Asks every unfinished job to stop.
+    pub fn cancel_all(&self) {
+        for job in self.shared.jobs.lock().unwrap().iter() {
+            if job.report.lock().unwrap().is_none() {
+                job.cancel.store(true, Ordering::Relaxed);
+            }
+        }
+    }
+
+    /// Jobs that are queued or still running.
+    pub fn busy(&self) -> usize {
+        self.shared
+            .jobs
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|j| j.report.lock().unwrap().is_none())
+            .count()
+    }
+
     pub fn report(&self, id: u64) -> Option<OperationReport> {
         let jobs = self.shared.jobs.lock().unwrap();
         jobs.iter().find(|j| j.id == id).and_then(|j| j.report.lock().unwrap().clone())
