@@ -30,6 +30,11 @@
 - [Update feeds](updates/feeds.md) and [testing the updater](updates/testing.md)
 - [Open-source licenses](licenses.md) — how the license list is generated and checked
 
+## Security reports
+- [GitHub security audit](reports/github-security-audit.md) and
+  [hardening](reports/github-security-hardening.md) (2026-11-03)
+- [MSI installation and update acceptance 0.5.0](reports/msi-update-acceptance-0.5.0.md)
+
 ## Releases
 - [Release process](release/process.md) — versions, steps, repository settings
 - [Release smoke test](release/checklist.md)
