@@ -178,6 +178,27 @@ describe("Network view", () => {
     expect(a.saveFavorites).toHaveBeenCalledWith([{ path: "\\\\offline-nas\\Archiv", label: "" }, { path: "\\\\NAS\\Privat", label: "" }]);
   });
 
+  it("offers Sign in… again after Windows' dialog was cancelled", async () => {
+    let signIns = 0;
+    const base = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "network_connect" && args?.signIn && ++signIns === 1)
+        return { path: "\\\\NAS\\Privat", shareRoot: "\\\\NAS\\Privat", report: { status: "cancelled", message: "Sign-in was cancelled.", code: 1223 }, managed: false, existing: false };
+      return base(cmd, args);
+    });
+    const a = actions();
+    render(<NetworkView actions={a} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Add network share/ }));
+    fireEvent.change(screen.getByLabelText("Server or network path"), { target: { value: "\\\\NAS\\Privat" } });
+    await screen.findByText(/Share: \\\\NAS\\Privat/);
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Sign in/ }));
+    expect(await screen.findByText("Sign-in was cancelled.")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /Sign in/ }));
+    await waitFor(() => expect(a.navigate).toHaveBeenCalledWith({ type: "folder", path: "\\\\NAS\\Privat" }));
+    expect(signIns).toBe(2);
+  });
+
   it("renames a saved location (name only, path unchanged)", async () => {
     const a = actions();
     render(<NetworkView actions={a} />);

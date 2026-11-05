@@ -68,7 +68,8 @@ export function ConnectDialog({ initialPath = "", onClose, onConnected, onShowSe
   };
 
   const report = result?.report;
-  const canSignIn = report && needsSignIn(report.status);
+  // After Windows' dialog was cancelled, signing in again is the natural next step.
+  const canSignIn = report && (needsSignIn(report.status) || report.status === "cancelled");
   return (
     <Dialog
       title="Connect to a network share"
