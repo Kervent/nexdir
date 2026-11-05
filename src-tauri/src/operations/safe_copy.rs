@@ -47,6 +47,7 @@ const ERROR_PATH_NOT_FOUND: i32 = 3;
 const ERROR_FILE_EXISTS: i32 = 80;
 const ERROR_ALREADY_EXISTS: i32 = 183;
 const ATTR_READONLY: u32 = 0x1;
+const FLAG_WRITE_THROUGH: u32 = 0x8000_0000;
 /// Attributes carried over from the source (read-only, hidden, system, archive).
 const COPIED_ATTRIBUTES: u32 = 0x1 | 0x2 | 0x4 | 0x20;
 
@@ -111,6 +112,10 @@ pub struct Options {
     /// Copy the file a source link points to (top-level "copy" of a file link, like Explorer).
     /// Otherwise a source that is a link is refused.
     pub follow_source_link: bool,
+    /// Write the temporary file with write-through (network destinations): every chunk reaches
+    /// the server before the next one, so progress, speed and Cancel follow the real transfer
+    /// instead of the client's write cache.
+    pub write_through: bool,
 }
 
 #[derive(Debug)]
@@ -155,7 +160,9 @@ fn describe(e: &io::Error) -> String {
         Some(5) => "Access was denied (the file may be read-only, or you lack permission).".into(),
         Some(112) | Some(39) => "There is not enough space on the destination drive.".into(),
         Some(19) => "The destination is write-protected.".into(),
-        _ => e.to_string(),
+        // Everything else, including lost or unreachable network shares, gets the shared
+        // explanations instead of the localised system text.
+        _ => crate::error::AppError::from_io(e, "").message,
     }
 }
 
@@ -176,7 +183,7 @@ struct OwnedTemp {
 impl OwnedTemp {
     /// Reserves a new temporary file next to `target`. A name that already exists (whoever
     /// created it, whenever) is skipped; it is never opened, changed or removed.
-    fn create(hooks: &dyn Hooks, dir: &Path) -> Result<Self, CopyError> {
+    fn create(hooks: &dyn Hooks, dir: &Path, write_through: bool) -> Result<Self, CopyError> {
         for attempt in 0..MAX_NAME_ATTEMPTS {
             let path = hooks.temp_name(dir, "partial", attempt);
             let _ = hooks.at(Stage::BeforeCreateTemp(&path));
@@ -186,6 +193,7 @@ impl OwnedTemp {
                 .create_new(true)
                 .access_mode(platform::ACCESS_GENERIC_READ | platform::ACCESS_GENERIC_WRITE | platform::ACCESS_DELETE)
                 .share_mode(0)
+                .custom_flags(if write_through { FLAG_WRITE_THROUGH } else { 0 })
                 .open(&path)
             {
                 Ok(file) => return Ok(Self { file: Some(file), path }),
@@ -377,7 +385,7 @@ pub fn copy(
     };
 
     // 1. Reserve; 2. copy.
-    let mut temp = OwnedTemp::create(hooks, dir)?;
+    let mut temp = OwnedTemp::create(hooks, dir, opts.write_through)?;
     let copied = copy_data(hooks, &mut source, temp.file.as_mut().expect("present"), cancel, progress);
     let fail = |temp: OwnedTemp, e: CopyError| -> CopyError {
         match (temp.discard(), e) {
@@ -530,6 +538,14 @@ fn swap(hooks: &dyn Hooks, temp: OwnedTemp, old: File, target: &Path, dir: &Path
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn network_failures_are_explained_in_plain_words() {
+        // Found in the Samba outage test: the localised system text was shown before.
+        assert!(describe(&io::Error::from_raw_os_error(53)).starts_with("Not reachable"));
+        assert!(describe(&io::Error::from_raw_os_error(64)).contains("interrupted"));
+        assert!(describe(&io::Error::from_raw_os_error(5)).starts_with("Access was denied"));
+    }
     use std::collections::HashSet;
     use std::sync::{Arc, Barrier, Mutex};
 
@@ -557,6 +573,7 @@ mod tests {
             durable: true,
             delete_source: false,
             follow_source_link: false,
+            write_through: false,
         }
     }
 
@@ -1009,6 +1026,7 @@ mod tests {
             durable: true,
             delete_source: true,
             follow_source_link: false,
+            write_through: true,
         };
         let c = copy(&NoHooks, &src, &new, o, &AtomicBool::new(false), &mut |_| {}).unwrap();
         assert!(c.source_kept.is_none(), "{c:?}");
