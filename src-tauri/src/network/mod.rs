@@ -416,12 +416,16 @@ pub fn connect(state: &NetworkState, input: &str, prompt_owner: Option<isize>) -
     let path = p.display();
     let api = state.api.clone();
     let root = share_root.clone();
-    let existing = match state.gate.run(LOCAL_TIMEOUT, move || api.connected()) {
-        Ok(Ok(list)) => list
-            .iter()
-            .any(|r| r.remote.eq_ignore_ascii_case(&root) || r.remote.to_lowercase() == root.to_lowercase()),
-        _ => false,
-    } || state.registry.contains(&share_root);
+    // None: Windows could not say whether a connection exists. Nexdir then still connects,
+    // but does not claim the connection as its own (it might be the user's).
+    let known_existing = match state.gate.run(LOCAL_TIMEOUT, move || api.connected()) {
+        Ok(Ok(list)) => Some(
+            list.iter()
+                .any(|r| r.remote.eq_ignore_ascii_case(&root) || r.remote.to_lowercase() == root.to_lowercase()),
+        ),
+        _ => None,
+    };
+    let existing = known_existing == Some(true) || state.registry.contains(&share_root);
 
     let mut managed = state.registry.contains(&share_root);
     if !existing {
@@ -429,10 +433,11 @@ pub fn connect(state: &NetworkState, input: &str, prompt_owner: Option<isize>) -
         let root = share_root.clone();
         let timeout = if prompt_owner.is_some() { PROMPT_TIMEOUT } else { SERVER_TIMEOUT };
         match state.gate.run(timeout, move || api.add_connection(&root, prompt_owner)) {
-            Ok(Ok(())) => {
+            Ok(Ok(())) if known_existing == Some(false) => {
                 state.registry.insert(&share_root);
                 managed = true;
             }
+            Ok(Ok(())) => {}
             Ok(Err(code)) => {
                 return Ok(ConnectOutcome {
                     path,
