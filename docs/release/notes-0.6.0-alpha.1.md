@@ -103,6 +103,11 @@ is the only connection to the internet Nexdir makes itself.
   are refused (copy instead).
 - Windows allows only one account per server at a time; Nexdir shows *Other account in use* and
   does not disconnect the other connection.
+- If you uninstalled the per-user `Setup.exe` and then install the **MSI**, the MSI uses the old
+  setup folder (`%LOCALAPPDATA%\Nexdir`) instead of `C:\Program Files\Nexdir`. It works, but is
+  installed for all users in your profile folder. To avoid it, delete the registry key
+  `HKEY_CURRENT_USER\Software\Nexdir contributors\Nexdir` before installing the MSI. (Not new in
+  this version.)
 - No Windows code signing yet (see above).
 
 ## Files
