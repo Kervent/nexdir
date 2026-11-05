@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-network-favorites-save"
+description = "Enables the network_favorites_save command without any pre-configured scope."
+commands.allow = ["network_favorites_save"]
+
+[[permission]]
+identifier = "deny-network-favorites-save"
+description = "Denies the network_favorites_save command without any pre-configured scope."
+commands.deny = ["network_favorites_save"]

@@ -84,6 +84,10 @@ pub trait Hooks: Sync {
     fn rename_item(&self, from: &Path, to: &Path) -> io::Result<()> {
         platform::move_no_replace(from, to)
     }
+    /// Whether `path` is on a network share (decides which move strategies are allowed).
+    fn is_network(&self, path: &Path) -> bool {
+        crate::network::is_remote(path)
+    }
 }
 
 pub struct NoHooks;

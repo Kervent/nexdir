@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-network-list-shares"
+description = "Enables the network_list_shares command without any pre-configured scope."
+commands.allow = ["network_list_shares"]
+
+[[permission]]
+identifier = "deny-network-list-shares"
+description = "Denies the network_list_shares command without any pre-configured scope."
+commands.deny = ["network_list_shares"]

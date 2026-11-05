@@ -25,6 +25,10 @@ impl AppPaths {
     pub fn update_settings_file(&self) -> PathBuf {
         self.config_dir.join("update-settings.json")
     }
+    /// Saved network locations (paths and names only, never credentials).
+    pub fn network_file(&self) -> PathBuf {
+        self.config_dir.join("network.json")
+    }
     pub fn index_db(&self) -> PathBuf {
         self.data_dir.join("index").join("index.sqlite")
     }
