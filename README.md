@@ -22,7 +22,7 @@ A modern, intelligent, open-source file manager for Windows.</p>
 ---
 
 > [!WARNING]
-> **Nexdir is alpha software (version 0.4.3).** It is meant for early testers. It has been
+> **Nexdir is alpha software (version 0.6.0-alpha.1).** It is meant for early testers. It has been
 > tested on Windows 11 only. **Keep backups of important files** and report anything unexpected.
 > The release files are not code-signed yet.
 
@@ -55,6 +55,7 @@ A modern, intelligent, open-source file manager for Windows.</p>
 | Navigation | Tabs (restored on the next start), split view, Home page, quick access, drives with usage, pinned folders, back/forward/up, breadcrumb and editable address bar (`%ENV%`, `~`), `nexdir.exe <folder>` |
 | File list | Details and icon views, natural sorting with folders first, filter-as-you-type, hidden-file toggle, multi-select, type-ahead |
 | Operations | New folder, rename (with undo), cut/copy/paste shared with the Windows clipboard, drag and drop, background queue with progress, speed, time left and cancellation, conflict choice (keep both / skip / replace), Recycle Bin, open with the default app, properties, copy path |
+| Network shares and NAS | Network area with network drives, share connections and saved shares; connect by `\\server\share` with your Windows account or Windows' own sign-in dialog; shares in tabs and split view; verified copies to and from shares (no deleting and no moves across shares) |
 | Preview | Images, text files, folder item counts, file details |
 | Search | Plain-English requests interpreted on your PC ("videos larger than 2 GB in Downloads"), wildcards, filters; optional local SQLite FTS5 index |
 | Storage analysis | Treemap, largest folders and files, breakdown by type |

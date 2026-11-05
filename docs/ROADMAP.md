@@ -64,6 +64,23 @@ Carried over:
 - A settings page (it would also offer *Restart Tutorial*; today the tour restarts from Help)
 - Discord invite link in Help once the owner sets `NEXDIR_DISCORD_INVITE`
 
+## 0.5.0 — Updates and licenses ✅
+Done: signed in-app updates (Stable and Beta (Preview) channels), Open Source Licenses and
+credits, settings dialog.
+
+## 0.6.0 — Network shares and NAS (SMB) ✅ (alpha)
+Done: Network area (network drives, connections, saved shares, a server's shares, search on
+request), connection by path with the Windows account or Windows' own sign-in dialog, shares in
+tabs and split view, verified copies to and from shares, bounded network calls, tested against a
+Samba server.
+
+Carried over:
+- Tests with NAS devices (Synology, QNAP, TrueNAS) and on Windows 10
+- Moving across shares and deleting on shares, once their safety can be proven
+- Finding and removing `~nexdir-….partial` leftovers after an outage (with confirmation)
+- Faster copies on high-latency links (several writes in flight)
+- Assigning drive letters
+
 ## Next (after the first public release)
 - Everything listed under "Carried over" above
 - Code signing once a signing option is chosen
