@@ -1,6 +1,6 @@
 [package]
 name = "nexdir"
-version = "0.5.0-alpha.1"
+version = "0.6.0-alpha.1"
 description = "A modern, intelligent, open-source file manager for Windows."
 authors = ["Nexdir contributors"]
 license = "MIT"
