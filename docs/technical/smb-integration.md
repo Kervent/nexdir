@@ -95,12 +95,17 @@ task until Windows returns; Stop takes effect afterwards.
 
 - `Registry` remembers the shares Nexdir connected itself in this session (case-insensitive).
 - *Connect* first checks `RESOURCE_CONNECTED`: an existing Windows connection is reused and marked
-  as not Nexdir's; it is never changed or replaced.
+  as not Nexdir's; it is never changed or replaced. If Windows cannot list its connections at that
+  moment, Nexdir still connects but does **not** register the connection as its own.
 - *Disconnect* is offered and accepted only for registry entries, never forced, and refused while
   copy/move operations run.
-- At exit Nexdir releases its registry connections (not forced, 3 s per connection).
+- At exit Nexdir releases its registry connections (not forced, 3 s per connection). Limitation:
+  Windows keeps one deviceless connection per user and share; if the user connected the *same*
+  share without a drive letter elsewhere after Nexdir did, Windows treats it as the same
+  connection. Because the release is never forced, a connection with open files stays.
 - `ERROR_SESSION_CREDENTIAL_CONFLICT` (1219) is reported as *Other account in use*; Nexdir does
-  not disconnect the other session to make room.
+  not disconnect the other session to make room. (Not listed on the WNet reference pages; observed
+  with the Samba test server when a second account connected to the same server.)
 - No automatic reconnection: favourites never trigger connection attempts at start. A restored
   tab with a network folder lists it once (through the gate).
 
@@ -108,7 +113,7 @@ task until Windows returns; Stop takes effect afterwards.
 
 | Operation | Behaviour | Why |
 |---|---|---|
-| Copy (any direction) | Existing staged copy: `CREATE_NEW` temp file, BLAKE3 while reading, read-back verification through the same handle, rename by handle, *Replace* via backup rename. Copies to a share are always flushed (`FlushFileBuffers` → SMB2 FLUSH) before they count as finished. | Handle-based rename and delete are supported over SMB2/3, so the local guarantees carry over: no partial file under the final name, an existing file survives every failure. Limitation: the read-back may be served from the client cache; the flush asks the server to commit, but Nexdir cannot prove the server's disk state. |
+| Copy (any direction) | Existing staged copy: `CREATE_NEW` temp file, BLAKE3 while reading, read-back verification through the same handle, rename by handle, *Replace* via backup rename. On a share the temporary file is opened with `FILE_FLAG_WRITE_THROUGH` (each 1 MiB chunk reaches the server before the next is written, so progress, speed and Cancel follow the real transfer) and flushed (`FlushFileBuffers` → SMB2 FLUSH) before the copy counts as finished. | Handle-based rename and delete are supported over SMB2/3, so the local guarantees carry over: no partial file under the final name, an existing file survives every failure. Limitation: the read-back may be served from the client cache; the flush asks the server to commit, but Nexdir cannot prove the server's disk state. |
 | Move inside one share | Rename on the server. | Nothing is deleted. |
 | Move across a share boundary (or merge into an existing folder on a share) | Refused in the UI before it starts and again in the engine (`NETWORK_MOVE_REFUSED`). | It would delete the original permanently after a copy whose durability on the server cannot be proven. |
 | Delete | Refused (`check_recyclable`: drive type `DRIVE_REMOTE` has no Recycle Bin). | Windows would delete permanently. Also applies to duplicate removal. |
@@ -116,6 +121,26 @@ task until Windows returns; Stop takes effect afterwards.
 | File identity | Some servers report unstable or zero file IDs. Identity comparisons only ever lead to a refusal ("same file"), never to deleting or overwriting. | Fail-safe direction. |
 | Alternate data streams | Copied best effort; servers without stream support simply do not get them. | Existing behaviour. |
 | Links/reparse points | Never followed while recursing (existing engine rules). | |
+
+### Behaviour measured with the Samba test server
+
+- **Server lost during a copy** (early, late during the final write phase, during *Replace*): the
+  copy fails with "Not reachable …"; nothing appears under the final name; an existing file
+  keeps its old content; the source is unchanged. The temporary `~nexdir-<random>.partial` stays
+  on the share, because Nexdir only ever deletes through its own open handle, which the lost
+  connection invalidated. The message names the file so the user can remove it.
+- **Why write-through:** without it, the Windows SMB client accepted the data into its cache at
+  once and sent it during the final flush; progress stood still and Cancel had no effect (20
+  Mbit/s: 27 s without progress, Cancel ignored). With write-through progress and speed are
+  accurate and Cancel ends a copy within about 0.2–0.3 s. Throughput on bandwidth-limited links
+  is the same as Windows' `CopyFile` (100 Mbit/s: 1.9 s vs 1.7 s for 20 MiB; 20 Mbit/s: 8.7 s vs
+  8.4 s). Cost: on high-latency links Nexdir is slower than `CopyFile`, which keeps several writes
+  in flight (40 ms one-way delay: 8.1 s vs 1.8 s). Overlapped writes would be the next step.
+- **Many small files:** every file is staged, verified and flushed: about 9 ms per file over the
+  virtual network (1,000 files: 9.1 s).
+- **Directory cache:** Windows caches directory contents of shares for a few seconds. A folder
+  created on the server by another machine may appear in Nexdir only after that time or after
+  *Refresh*; folders created through Nexdir appear at once.
 
 ## Error handling
 
