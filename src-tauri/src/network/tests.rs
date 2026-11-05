@@ -217,6 +217,23 @@ fn disconnects_only_its_own_connections() {
 }
 
 #[test]
+fn releases_only_its_own_connections_at_exit() {
+    let f = FakeNet::default();
+    f.connected
+        .lock()
+        .unwrap()
+        .push(res(r"\\other\drive", Some("Y:"), ResourceKind::Share, false));
+    let (s, f) = state(f);
+    connect(&s, r"\\NAS\A", None).unwrap();
+    connect(&s, r"\\NAS\B\x", None).unwrap();
+    release_managed(&s, Duration::from_secs(1));
+    let mut cancelled = f.cancelled.lock().unwrap().clone();
+    cancelled.sort();
+    assert_eq!(cancelled, vec![r"\\nas\a".to_string(), r"\\nas\b".to_string()]);
+    assert!(s.registry.all().is_empty());
+}
+
+#[test]
 fn a_hanging_server_times_out_instead_of_blocking() {
     static SLOW: Gate = Gate::new(4);
     let s = NetworkState {

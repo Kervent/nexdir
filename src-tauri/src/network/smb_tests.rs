@@ -173,6 +173,63 @@ fn smb_moves_across_the_share_boundary_are_refused_and_change_nothing() {
 
 #[test]
 #[ignore]
+fn smb_performance_of_large_folders_and_large_files() {
+    let Some(lb) = loopback() else { return };
+    let many = lb.local.join("many");
+    fs::create_dir(&many).unwrap();
+    for i in 0..20_000 {
+        fs::write(many.join(format!("file {i:05}.txt")), "x").unwrap();
+    }
+    let t0 = std::time::Instant::now();
+    let local = filesystem::list_dir(&many, false).unwrap();
+    let local_ms = t0.elapsed().as_millis();
+    let t0 = std::time::Instant::now();
+    let remote = filesystem::list_dir(&lb.unc.join("many"), false).unwrap();
+    let remote_ms = t0.elapsed().as_millis();
+    assert_eq!(local.entries.len(), 20_000);
+    assert_eq!(remote.entries.len(), 20_000);
+    eprintln!("PERF listing 20,000 files: local {local_ms} ms, over SMB {remote_ms} ms");
+
+    let src = lb.local.join("big-src");
+    fs::create_dir(&src).unwrap();
+    let data: Vec<u8> = (0..(256 * 1024 * 1024)).map(|i| (i % 253) as u8).collect();
+    fs::write(src.join("big.bin"), &data).unwrap();
+    let dst = lb.local.join("big-dst");
+    fs::create_dir(&dst).unwrap();
+    let t0 = std::time::Instant::now();
+    let r = run(
+        TransferKind::Copy,
+        vec![src.join("big.bin")],
+        &lb.unc.join("big-dst"),
+        ConflictPolicy::Skip,
+    );
+    let secs = t0.elapsed().as_secs_f64();
+    assert!(r.failures.is_empty(), "{r:?}");
+    assert_eq!(fs::metadata(dst.join("big.bin")).unwrap().len(), data.len() as u64);
+    eprintln!(
+        "PERF copy 256 MiB local -> SMB (staged, verified, flushed): {secs:.1} s ({:.0} MB/s)",
+        256.0 / secs
+    );
+    let back = lb.local.join("big-back");
+    fs::create_dir(&back).unwrap();
+    let t0 = std::time::Instant::now();
+    let r = run(
+        TransferKind::Copy,
+        vec![lb.unc.join("big-dst").join("big.bin")],
+        &back,
+        ConflictPolicy::Skip,
+    );
+    let secs = t0.elapsed().as_secs_f64();
+    assert!(r.failures.is_empty(), "{r:?}");
+    assert_eq!(fs::read(back.join("big.bin")).unwrap(), data);
+    eprintln!(
+        "PERF copy 256 MiB SMB -> local (staged, verified): {secs:.1} s ({:.0} MB/s)",
+        256.0 / secs
+    );
+}
+
+#[test]
+#[ignore]
 fn smb_items_are_never_deleted_permanently() {
     let Some(lb) = loopback() else { return };
     fs::write(lb.local.join("victim.txt"), "keep me").unwrap();

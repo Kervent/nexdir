@@ -52,9 +52,34 @@ pub async fn network_list_shares(
     state: State<'_, Arc<NetworkState>>,
     server: String,
 ) -> AppResult<Result<Vec<network::DiscoveredShare>, StatusReport>> {
-    let p = unc::parse(&server)?;
+    let p = unc::parse(&server_path(&server))?;
     let state = state.inner().clone();
     blocking(move || Ok(network::list_shares(&state, &p.server))).await
+}
+
+/// Accepts a server as `NAS` or `\\NAS` (the Network view passes the bare name).
+fn server_path(server: &str) -> String {
+    let s = server.trim();
+    if s.starts_with(r"\\") || s.starts_with("//") {
+        s.to_string()
+    } else {
+        format!(r"\\{s}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn server_names_are_accepted_with_or_without_backslashes() {
+        for input in ["localhost", r"\\localhost", "//localhost", " NAS-WOHNZIMMER "] {
+            let p = unc::parse(&server_path(input)).unwrap();
+            assert_eq!(p.kind(), unc::UncKind::Server, "{input}");
+        }
+        assert!(unc::parse(&server_path(r"\.\pipe")).is_err());
+        assert!(unc::parse(&server_path("a b")).is_err());
+    }
 }
 
 /// Starts a network search as a cancellable background task (result: `network::Discovery`).

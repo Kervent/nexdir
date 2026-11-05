@@ -68,7 +68,7 @@ import { TabBar } from "../features/workspace/TabBar";
 import { useVisibleEntries, useWorkspace } from "../features/workspace/useWorkspace";
 import { currentLocation, newId, parentPath, type Location, type PaneState } from "../features/workspace/workspace";
 import type { NetworkActions } from "../features/network/NetworkView";
-import { serverOnly } from "../features/network/networkPaths";
+import { moveBlockedReason, serverOnly } from "../features/network/networkPaths";
 import type { NetworkFavorite } from "../types/network";
 import { asEntry, type ToolContext } from "../features/tools/shared";
 import type { DropEffect } from "../features/dnd/dnd";
@@ -271,6 +271,8 @@ export function App() {
   /** Shared by paste and drag-and-drop: checks for name conflicts, then starts the job. */
   const transferInto = useCallback(
     async (kind: TransferKind, sources: string[], destination: string) => {
+      const blocked = kind === "move" ? moveBlockedReason(sources, destination, drives) : null;
+      if (blocked) return notify("error", "This move is not possible yet. Nothing was changed.", blocked);
       try {
         const check = await api.findConflicts(sources, destination);
         if (check.sameFolder) {
@@ -284,7 +286,7 @@ export function App() {
         notify("error", `Cannot ${kind} here.`, errorMessage(e));
       }
     },
-    [notify, startTransfer],
+    [notify, startTransfer, drives],
   );
 
   const onDropPaths = useCallback(

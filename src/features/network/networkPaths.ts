@@ -47,3 +47,22 @@ export function statusTone(status: NetworkStatus | null): "ok" | "warn" | "error
 export function needsSignIn(status: NetworkStatus): boolean {
   return status === "signInRequired" || status === "accessDenied";
 }
+
+/** Same-volume key of a network path: `\\server\share` (UNC) or the drive letter of a mapped drive. */
+function rootKey(path: string): string {
+  const p = path.replace(/\//g, "\\");
+  const unc = /^\\\\(?:\?\\UNC\\)?([^\\]+)\\([^\\]+)/i.exec(p);
+  if (unc) return `\\\\${unc[1]}\\${unc[2]}`.toLowerCase();
+  return p.slice(0, 2).toUpperCase();
+}
+
+export const NETWORK_MOVE_REFUSED =
+  "Moving between a network share and another location is not available yet: network shares have no Recycle Bin, and Nexdir cannot confirm that the server has stored the copy before the original is deleted. Copy the items instead, check the copy, then delete the original yourself.";
+
+/** Why a move must not start, or null. Moves inside one share are renames and allowed. */
+export function moveBlockedReason(sources: string[], destination: string, drives: DriveInfo[]): string | null {
+  const all = [...sources, destination];
+  if (!all.some((p) => isNetworkPath(p, drives))) return null;
+  const roots = new Set(all.map(rootKey));
+  return roots.size === 1 ? null : NETWORK_MOVE_REFUSED;
+}

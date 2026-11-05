@@ -184,6 +184,10 @@ pub fn parse(input: &str) -> AppResult<UncPath> {
             ));
         }
     };
+    // A third leading backslash ("\\\server") is not a valid network path.
+    if body.starts_with('\\') {
+        return Err(invalid("The network path is not valid (too many backslashes at the start).", input));
+    }
     // Empty segments ("\\server\\share", trailing "\") and "." are ignored; ".." is refused.
     let mut parts = body.split('\\').filter(|p| !p.is_empty() && *p != ".");
     let server = parts.next().unwrap_or("").to_string();
@@ -270,6 +274,8 @@ mod tests {
     #[test]
     fn refuses_invalid_input() {
         assert!(err("").contains("Enter"));
+        assert!(err(r"\\\.\pipe").contains("too many backslashes"));
+        assert!(err(r"\\\server\share").contains("too many backslashes"));
         assert!(err(r"C:\Users").contains("two backslashes"));
         assert!(err("nas\\share").contains("two backslashes"));
         assert!(err(r"\\").contains("missing"));
