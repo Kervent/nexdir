@@ -473,6 +473,9 @@ impl<'a> Engine<'a> {
             // The source is deleted by safe_copy through the handle it was copied from.
             delete_source: is_move,
             follow_source_link: follow_link,
+            // On shares the SMB client would otherwise accept the data into its cache at once and
+            // send it during the final flush, where progress and Cancel cannot follow it.
+            write_through: self.hooks.is_network(target),
         };
         let result = {
             let progress = &mut self.progress;

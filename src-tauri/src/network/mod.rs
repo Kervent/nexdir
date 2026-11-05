@@ -510,6 +510,8 @@ pub fn release_managed(state: &NetworkState, timeout: Duration) {
 }
 
 #[cfg(test)]
+mod samba_tests;
+#[cfg(test)]
 mod smb_tests;
 #[cfg(test)]
 mod tests;
