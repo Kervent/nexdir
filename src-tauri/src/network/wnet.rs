@@ -68,6 +68,8 @@ mod imp {
     const DISPLAY_NETWORK: u32 = 6;
     /// Upper bound on resources read from one enumeration (keeps memory bounded).
     const MAX_ITEMS: usize = 4096;
+    /// Largest enumeration buffer (1 MiB, in u64 words).
+    const MAX_BUFFER_WORDS: usize = (1 << 20) / 8;
 
     fn wide(s: &str) -> Vec<u16> {
         OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
@@ -152,7 +154,13 @@ mod imp {
                 break Ok(());
             }
             if e == ERROR_MORE_DATA {
-                buf.resize((size as usize).div_ceil(8) + 1, 0);
+                // The buffer is too small for even one entry; `size` is the required size.
+                // Always grow (at least double) and stop at 1 MiB, so this can never spin.
+                let needed = ((size as usize).div_ceil(8) + 1).max(buf.len() * 2);
+                if needed > MAX_BUFFER_WORDS {
+                    break Err(ERROR_MORE_DATA.0);
+                }
+                buf.resize(needed, 0);
                 continue;
             }
             if e != NO_ERROR {

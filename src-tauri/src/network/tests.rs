@@ -23,6 +23,7 @@ struct FakeNet {
     connect_plain: Option<u32>,
     connect_prompt: Option<u32>,
     probe_error: Option<u32>,
+    connected_error: Option<u32>,
     hang_probe: bool,
     add_calls: AtomicUsize,
     prompted: AtomicBool,
@@ -31,6 +32,9 @@ struct FakeNet {
 
 impl NetApi for FakeNet {
     fn connected(&self) -> Result<Vec<NetResource>, u32> {
+        if let Some(code) = self.connected_error {
+            return Err(code);
+        }
         Ok(self.connected.lock().unwrap().clone())
     }
     fn remembered(&self) -> Result<Vec<NetResource>, u32> {
@@ -204,6 +208,22 @@ fn refuses_servers_and_invalid_paths_before_any_network_call() {
         assert!(connect(&s, input, None).is_err(), "{input}");
     }
     assert_eq!(f.add_calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn does_not_claim_a_connection_when_windows_cannot_list_connections() {
+    // Found in the security review: an unknown state must not make Nexdir the owner.
+    let (s, f) = state(FakeNet {
+        connected_error: Some(1222),
+        ..Default::default()
+    });
+    let out = connect(&s, r"\\NAS\Medien", None).unwrap();
+    assert_eq!(out.report.status, NetworkStatus::Connected);
+    assert!(!out.managed);
+    assert!(s.registry.all().is_empty());
+    assert!(disconnect(&s, r"\\NAS\Medien").is_err());
+    release_managed(&s, Duration::from_secs(1));
+    assert!(f.cancelled.lock().unwrap().is_empty());
 }
 
 #[test]
