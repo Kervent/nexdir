@@ -107,6 +107,20 @@ export const HELP_TOPICS: Topic[] = [
     ),
   },
   {
+    id: "network",
+    title: "Network shares and NAS",
+    body: (
+      <ul>
+        <li>Open Network in the sidebar. It shows the network drives and connections Windows already has, and the shares you saved. Nothing is contacted until you open, check or search.</li>
+        <li>Add network share connects to a path like \\NAS\Media or \\192.168.178.10\Backups. Type only \\NAS to see that server's shares.</li>
+        <li>Nexdir uses your Windows account. If a share needs another user name and password, choose Sign in: Windows shows its own dialog and can remember them in the Credential Manager. Nexdir never sees or stores passwords.</li>
+        <li>Search the network lists servers that Windows reports and the shares of servers you already used. Current Windows versions often report none; adding the path always works.</li>
+        <li>Open shares in tabs or in split view next to a local folder and copy between them. Copies are verified before they count as finished.</li>
+        <li>Deleting on a share and moving between a share and another drive are not available yet (shares have no Recycle Bin). Renaming and moving inside one share work.</li>
+      </ul>
+    ),
+  },
+  {
     id: "problems",
     title: "Common problems",
     body: (
@@ -117,6 +131,11 @@ export const HELP_TOPICS: Topic[] = [
         <dd>Current builds are not code-signed yet. Check the SHA-256 checksum from the release page, then choose More info → Run anyway.</dd>
         <dt>Delete is not available on a network or USB drive</dt>
         <dd>These drives have no Recycle Bin, and Nexdir does not delete permanently. Delete such files in Explorer if you really want to.</dd>
+        <dt>A network share does not open</dt>
+        <dd>
+          Check that the server is switched on and the name is right. “Sign-in required” or “Access denied”: choose Sign in. “Other account in use”: Windows allows one account per server; disconnect the other connection first. “Blocked by Windows”: the
+          share needs a user account (Windows blocks guest access); Nexdir does not weaken this.
+        </dd>
         <dt>A copy is slower than in Explorer</dt>
         <dd>Replacing files and moving between drives verify the data before the original is touched. This takes a little longer but protects your files.</dd>
         <dt>Nexdir does not start</dt>
