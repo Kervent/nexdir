@@ -11,6 +11,7 @@ use crate::security::{self, validate_path};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 
+pub mod network;
 pub mod tools;
 
 /// Upper bound on items per request, to keep a misbehaving frontend from exhausting resources.
@@ -20,6 +21,50 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> AppResult<T> + Send + '
     tauri::async_runtime::spawn_blocking(f)
         .await
         .map_err(|_| AppError::new(ErrorCode::Io, "A background task failed unexpectedly."))?
+}
+
+/// How long Nexdir waits for a listing, preview or check on a network share before it reports
+/// that the server does not answer (Windows may still finish the request in the background).
+const NETWORK_FS_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Runs file-system work off the async runtime. Work on network shares goes through the
+/// bounded network gate: a server that does not answer can neither block Nexdir nor tie up an
+/// unbounded number of threads.
+async fn fs_work<T: Send + 'static>(
+    on_network: impl FnOnce() -> bool + Send + 'static,
+    f: impl FnOnce() -> AppResult<T> + Send + 'static,
+) -> AppResult<T> {
+    use crate::network::pool::{GateError, NETWORK};
+    blocking(move || {
+        if !on_network() {
+            return f();
+        }
+        match NETWORK.run(NETWORK_FS_TIMEOUT, f) {
+            Ok(result) => result,
+            Err(GateError::TimedOut) => Err(AppError::new(
+                ErrorCode::DeviceNotReady,
+                "The network location does not answer. The server may be switched off or the connection may be lost.",
+            )),
+            Err(GateError::Busy) => Err(AppError::new(
+                ErrorCode::DeviceNotReady,
+                "Several network locations are not answering. Wait a moment and try again.",
+            )),
+        }
+    })
+    .await
+}
+
+/// True for typed input that names a network location (UNC path or mapped network drive).
+fn input_on_network(input: &str) -> bool {
+    let text = input.trim().trim_matches('"');
+    if crate::network::unc::looks_like_unc(text) {
+        return true;
+    }
+    let bytes = text.as_bytes();
+    bytes.len() >= 2
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && crate::network::is_remote(std::path::Path::new(&format!("{}:\\", bytes[0] as char)))
 }
 
 fn validate_many(paths: &[String]) -> AppResult<Vec<PathBuf>> {
@@ -39,7 +84,12 @@ fn window_handle(window: &WebviewWindow) -> Option<isize> {
 #[tauri::command]
 pub async fn list_dir(path: String, show_hidden: bool) -> AppResult<DirListing> {
     let path = validate_path(&path)?;
-    blocking(move || filesystem::list_dir(&path, show_hidden)).await
+    let check = path.clone();
+    fs_work(
+        move || crate::network::is_remote(&check),
+        move || filesystem::list_dir(&path, show_hidden),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -54,7 +104,8 @@ pub fn known_folders() -> Vec<KnownFolder> {
 
 #[tauri::command]
 pub async fn resolve_path(input: String) -> AppResult<ResolvedPath> {
-    blocking(move || filesystem::resolve_input(&input)).await
+    let check = input.clone();
+    fs_work(move || input_on_network(&check), move || filesystem::resolve_input(&input)).await
 }
 
 /// Folder (or file to select) passed on the command line, e.g. `nexdir.exe "D:\Photos"`.
@@ -232,7 +283,12 @@ pub async fn clipboard_get_files() -> AppResult<Option<ClipboardFiles>> {
 #[tauri::command]
 pub async fn preview_path(path: String) -> AppResult<filesystem::preview::Preview> {
     let path = validate_path(&path)?;
-    blocking(move || filesystem::preview::preview(&path)).await
+    let check = path.clone();
+    fs_work(
+        move || crate::network::is_remote(&check),
+        move || filesystem::preview::preview(&path),
+    )
+    .await
 }
 
 static CLOSE_CONFIRMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -289,4 +345,5 @@ pub fn init_state(app: &AppHandle) {
     app.manage(tasks);
     app.manage(crate::updater::UpdaterState::init(&paths));
     app.manage(paths);
+    app.manage(std::sync::Arc::new(crate::network::NetworkState::windows()));
 }

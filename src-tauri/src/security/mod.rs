@@ -72,7 +72,12 @@ pub fn validate_path(raw: &str) -> AppResult<PathBuf> {
             // Decided by the kind of prefix, not by text, so "//./x", "\\?\globalroot\…" and
             // other spellings of the device namespace cannot slip through.
             Component::Prefix(prefix) => match prefix.kind() {
-                Prefix::Disk(_) | Prefix::VerbatimDisk(_) | Prefix::UNC(..) | Prefix::VerbatimUNC(..) => {
+                Prefix::Disk(_) | Prefix::VerbatimDisk(_) => normalised.push(component.as_os_str()),
+                // Network paths: the server and share names are checked like in the network
+                // dialog (no device names, no IPC$ pipe share, no invalid characters).
+                Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => {
+                    crate::network::unc::validate_server(&server.to_string_lossy(), raw)?;
+                    crate::network::unc::validate_share(&share.to_string_lossy(), raw)?;
                     normalised.push(component.as_os_str())
                 }
                 Prefix::DeviceNS(_) | Prefix::Verbatim(_) => return Err(invalid("Device paths are not supported.")),
@@ -269,6 +274,30 @@ mod tests {
         assert!(validate_path(r"\\?\C:\very\long\path").is_ok());
         assert!(validate_path(r"\\?\UNC\server\share\x").is_ok());
         assert!(validate_path("C:/Users/me").is_ok());
+    }
+
+    #[test]
+    fn checks_server_and_share_of_network_paths() {
+        for ok in [
+            r"\\NAS-WOHNZIMMER\Medien\Filme",
+            r"\\192.168.178.10\Backups",
+            r"\\Büro-PC\Ablage 日本",
+            "//nas/share/x",
+            r"\\nas\C$\x",
+        ] {
+            assert!(validate_path(ok).is_ok(), "{ok}");
+        }
+        for bad in [
+            r"\\server\IPC$",
+            r"\\server\ipc$\x",
+            r"\\?\UNC\server\IPC$",
+            r"\\ser ver\share",
+            r"\\user@nas\share",
+            r"\\nas\sha;re\x",
+            r"\\..\share\x",
+        ] {
+            assert!(validate_path(bad).is_err(), "{bad} should be rejected");
+        }
     }
 
     #[test]

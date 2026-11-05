@@ -54,6 +54,15 @@
     "allow-update-cancel",
     "allow-update-snooze",
     "allow-update-install",
-    "allow-update-open-release"
+    "allow-update-open-release",
+    "allow-network-parse",
+    "allow-network-overview",
+    "allow-network-probe",
+    "allow-network-list-shares",
+    "allow-network-discover",
+    "allow-network-connect",
+    "allow-network-disconnect",
+    "allow-network-favorites-get",
+    "allow-network-favorites-save"
   ]
 }

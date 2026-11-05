@@ -24,6 +24,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const ERROR_NOT_SAME_DEVICE: i32 = 17;
+/// Moves that would copy and then delete the original are not done on network shares yet:
+/// there is no Recycle Bin there, and the client cannot prove that the server has stored the
+/// copy durably. A rename within the same share is still allowed (nothing is deleted).
+pub const NETWORK_MOVE_REFUSED: &str = "Moving between a network share and another location (or merging into an existing folder on a share) is not available yet. Nothing was changed. Copy the item instead and delete the original yourself once you have checked the copy.";
 const EMIT_INTERVAL: Duration = Duration::from_millis(120);
 /// Upper bound for per-item lists in a report, to keep memory bounded on huge trees.
 const REPORT_LIMIT: usize = 20_000;
@@ -212,6 +216,12 @@ pub struct Engine<'a> {
     emit_interval: Duration,
 }
 
+/// Runs a transfer synchronously (tests in other modules, e.g. the real SMB tests).
+#[cfg(test)]
+pub(crate) fn run_for_test(req: &TransferRequest, cancel: &AtomicBool, on_update: &mut dyn FnMut(&OperationProgress)) -> OperationReport {
+    Engine::new(1, req, cancel, on_update).run().1
+}
+
 impl<'a> Engine<'a> {
     pub fn new(id: u64, req: &'a TransferRequest, cancel: &'a AtomicBool, on_update: &'a mut dyn FnMut(&OperationProgress)) -> Self {
         Self {
@@ -346,6 +356,10 @@ impl<'a> Engine<'a> {
         self.transfer(src, &target, true);
     }
 
+    fn involves_network(&self, src: &Path, target: &Path) -> bool {
+        self.hooks.is_network(src) || self.hooks.is_network(target)
+    }
+
     fn transfer(&mut self, src: &Path, target: &Path, top_level: bool) {
         if self.cancelled() {
             return;
@@ -368,9 +382,18 @@ impl<'a> Engine<'a> {
                     self.emit(false);
                     return;
                 }
-                Err(e) if e.raw_os_error() == Some(ERROR_NOT_SAME_DEVICE) => {} // fall back to copy + remove
+                Err(e) if e.raw_os_error() == Some(ERROR_NOT_SAME_DEVICE) => {
+                    // Fall back to copy + remove, except across network shares.
+                    if self.involves_network(src, target) {
+                        return self.fail(src, NETWORK_MOVE_REFUSED);
+                    }
+                }
                 Err(e) => return self.fail(src, AppError::from_io(&e, src).message),
             }
+        }
+        // Merging into an existing destination copies and removes item by item.
+        if self.req.kind == TransferKind::Move && top_level && target_meta.is_some() && self.involves_network(src, target) {
+            return self.fail(src, NETWORK_MOVE_REFUSED);
         }
 
         match kind {
@@ -437,11 +460,16 @@ impl<'a> Engine<'a> {
         let cancel = self.cancel;
         let hooks = self.hooks;
         let is_move = self.req.kind == TransferKind::Move;
+        // Defence in depth: never delete a source after copying across a network share.
+        if is_move && self.involves_network(src, target) {
+            return self.fail(src, NETWORK_MOVE_REFUSED);
+        }
         let opts = safe_copy::Options {
             mode,
-            // Flush to disk when data disappears afterwards: the source of a move (the
-            // replaced version is always flushed by safe_copy).
-            durable: is_move,
+            // Flush to disk when data disappears afterwards (the source of a move; the replaced
+            // version is always flushed by safe_copy) and on network shares, so the server is
+            // asked to commit the data before the copy counts as finished.
+            durable: is_move || self.hooks.is_network(target),
             // The source is deleted by safe_copy through the handle it was copied from.
             delete_source: is_move,
             follow_source_link: follow_link,
@@ -910,5 +938,123 @@ mod tests {
         assert_eq!(c.conflicts, vec!["a.txt".to_string()]);
         assert!(!c.same_folder);
         assert!(find_conflicts(&[tmp.path().join("a.txt")], tmp.path()).same_folder);
+    }
+
+    /// Treats every path as a network share. With `same_share`, whole-item renames succeed
+    /// (a move inside one share); otherwise they fail like across devices.
+    struct NetworkShare {
+        same_share: bool,
+    }
+    impl safe_copy::Hooks for NetworkShare {
+        fn is_network(&self, _: &Path) -> bool {
+            true
+        }
+        fn rename_item(&self, from: &Path, to: &Path) -> std::io::Result<()> {
+            if self.same_share {
+                crate::platform::move_no_replace(from, to)
+            } else {
+                Err(std::io::Error::from_raw_os_error(ERROR_NOT_SAME_DEVICE))
+            }
+        }
+    }
+
+    fn snapshot(root: &Path) -> Vec<(String, Vec<u8>)> {
+        let mut out = vec![];
+        let mut stack = vec![root.to_path_buf()];
+        while let Some(dir) = stack.pop() {
+            for e in fs::read_dir(&dir).unwrap() {
+                let p = e.unwrap().path();
+                if p.is_dir() {
+                    stack.push(p.clone());
+                    out.push((p.strip_prefix(root).unwrap().display().to_string(), vec![]));
+                } else {
+                    out.push((p.strip_prefix(root).unwrap().display().to_string(), fs::read(&p).unwrap()));
+                }
+            }
+        }
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn network_moves_that_would_delete_the_original_are_refused() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (src, dst) = (tmp.path().join("src"), tmp.path().join("dst"));
+        tree(&src);
+        fs::create_dir(&dst).unwrap();
+        let before = (snapshot(&src), snapshot(&dst));
+        let (p, r) = run_with(
+            &NetworkShare { same_share: false },
+            TransferKind::Move,
+            vec![src.join("docs")],
+            &dst,
+            ConflictPolicy::Replace,
+        );
+        assert_eq!(p.state, OperationState::Completed, "{r:?}");
+        assert_eq!(r.failures.len(), 1);
+        assert_eq!(r.failures[0].message, NETWORK_MOVE_REFUSED);
+        assert!(r.completed.is_empty());
+        assert_eq!((snapshot(&src), snapshot(&dst)), before, "nothing changed on either side");
+    }
+
+    #[test]
+    fn network_merge_moves_are_refused() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (src, dst) = (tmp.path().join("src"), tmp.path().join("dst"));
+        tree(&src);
+        fs::create_dir_all(dst.join("docs")).unwrap();
+        fs::write(dst.join("docs/a.txt"), "old alpha").unwrap();
+        let before = (snapshot(&src), snapshot(&dst));
+        let (_, r) = run_with(
+            &NetworkShare { same_share: true },
+            TransferKind::Move,
+            vec![src.join("docs")],
+            &dst,
+            ConflictPolicy::Replace,
+        );
+        assert_eq!(r.failures[0].message, NETWORK_MOVE_REFUSED);
+        assert_eq!((snapshot(&src), snapshot(&dst)), before);
+    }
+
+    #[test]
+    fn network_moves_inside_one_share_are_renames() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (src, dst) = (tmp.path().join("src"), tmp.path().join("dst"));
+        tree(&src);
+        fs::create_dir(&dst).unwrap();
+        let (p, r) = run_with(
+            &NetworkShare { same_share: true },
+            TransferKind::Move,
+            vec![src.join("docs")],
+            &dst,
+            ConflictPolicy::Skip,
+        );
+        assert_eq!(p.state, OperationState::Completed, "{r:?}");
+        assert!(!src.join("docs").exists());
+        assert_eq!(fs::read_to_string(dst.join("docs/deep/b.txt")).unwrap(), "bravo!");
+    }
+
+    #[test]
+    fn network_copies_work_and_never_touch_the_source() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (src, dst) = (tmp.path().join("src"), tmp.path().join("dst"));
+        tree(&src);
+        fs::create_dir_all(dst.join("docs")).unwrap();
+        fs::write(dst.join("docs/a.txt"), "old alpha").unwrap();
+        let before = snapshot(&src);
+        // Merge copy into an existing folder on the share; the existing file is replaced
+        // through the staged copy, the source stays untouched.
+        let (p, r) = run_with(
+            &NetworkShare { same_share: false },
+            TransferKind::Copy,
+            vec![src.join("docs")],
+            &dst,
+            ConflictPolicy::Replace,
+        );
+        assert_eq!(p.state, OperationState::Completed, "{r:?}");
+        assert!(r.failures.is_empty(), "{r:?}");
+        assert_eq!(snapshot(&src), before);
+        assert_eq!(fs::read_to_string(dst.join("docs/a.txt")).unwrap(), "alpha");
+        assert_eq!(fs::read_to_string(dst.join("docs/deep/b.txt")).unwrap(), "bravo!");
     }
 }

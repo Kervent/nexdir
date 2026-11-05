@@ -7,6 +7,7 @@ mod commands;
 mod compat_tests;
 mod error;
 mod filesystem;
+mod network;
 mod operations;
 #[cfg(test)]
 mod perf;
@@ -62,6 +63,15 @@ pub fn run() {
             commands::clipboard_set_files,
             commands::clipboard_get_files,
             commands::preview_path,
+            commands::network::network_parse,
+            commands::network::network_overview,
+            commands::network::network_probe,
+            commands::network::network_list_shares,
+            commands::network::network_discover,
+            commands::network::network_connect,
+            commands::network::network_disconnect,
+            commands::network::network_favorites_get,
+            commands::network::network_favorites_save,
             commands::tools::start_storage_scan,
             commands::tools::start_duplicate_scan,
             commands::tools::recycle_duplicates,

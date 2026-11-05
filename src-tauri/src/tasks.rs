@@ -19,6 +19,7 @@ pub enum TaskKind {
     Duplicates,
     Search,
     IndexBuild,
+    NetworkDiscovery,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
