@@ -111,7 +111,7 @@ Full results: [network-storage-acceptance.md](../reports/network-storage-accepta
 | Outages early/late/during Replace, listing/rename/status during outage, recovery | PASS |
 | Slow links (100/20 Mbit/s, latency, loss): progress, Cancel, integrity | PASS |
 | Samba GUI test, 17 steps (tabs, split view local↔NAS and NAS↔NAS, favourites incl. rename and offline, outage in split view, slow copy with Cancel) | 17/17 PASS |
-| Windows' sign-in dialog with typed credentials | NOT TESTED (manual check below) |
+| Windows' sign-in dialog with typed credentials (2026-11-06, typed by the owner): cancel, wrong password, account without permission, correct sign-in, no stored credential, second account (1219), release at exit | PASS (8/8) |
 
 ### Manual check: Windows sign-in dialog (needs a person, about 5 minutes)
 
@@ -149,10 +149,10 @@ an auto-dismissed notification over page content, as a user would; other obstruc
 | Case | Status | Reason |
 |---|---|---|
 | NAS hardware (Synology, QNAP, TrueNAS), Samba on a separate physical machine | NOT TESTED | No device available; Samba tested on a virtual network. |
-| Windows' sign-in dialog with typed credentials, "remember credentials" | NOT TESTED | Needs a person (manual check above). Cancel and the error mapping are covered. |
+| "Remember my credentials" ticked in Windows' dialog | NOT TESTED | Windows' own Credential Manager feature; the other sign-in cases passed (see above). |
 | Guest-blocked and signing-incompatible servers | NOT TESTED (real) | The test server enforces signing and refuses guests; mapping tested with test doubles. |
 | Server names (name resolution of the test server) | NOT TESTED | Would need hosts/DNS changes. |
 | Physical connection loss (cable, Wi-Fi) | NOT TESTED | Simulated by stopping Samba. |
 | Windows 10 | NOT TESTED | Only Windows 11 available. |
-| NSIS / MSI / portable packages of this branch | SKIPPED | No release planned; branch built with `--no-bundle`. Packaging unchanged. |
+| NSIS / MSI / portable packages | PASS (0.6.0-alpha.1 test builds) | See [release-readiness-0.6.0-alpha.1.md](../reports/release-readiness-0.6.0-alpha.1.md). |
 | Creating a test share on the main PC | SKIPPED | Not needed (Samba VM); would change sharing settings. |
