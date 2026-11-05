@@ -427,6 +427,122 @@ fn samba_user_large_and_many_files_and_deep_long_paths() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Phase: an existing connection as `nxprivate` (made by the test operator, not by Nexdir).
+
+#[test]
+#[ignore]
+fn samba_existing_connection_is_reused_and_never_disconnected() {
+    let Some(srv) = server() else { return };
+    let state = NetworkState::windows();
+    let private = format!(r"\\{srv}\PrivateTest");
+    let out = connect(&state, &private, None).unwrap();
+    eprintln!(
+        "PrivateTest with the existing nxprivate connection: {:?} existing={} managed={}",
+        out.report.status, out.existing, out.managed
+    );
+    assert_eq!(out.report.status, NetworkStatus::Connected);
+    assert!(out.existing && !out.managed);
+    let err = disconnect(&state, &private).unwrap_err();
+    assert!(err.message.contains("only disconnects connections it created"));
+    assert!(
+        state
+            .api
+            .connected()
+            .unwrap()
+            .iter()
+            .any(|r| r.remote.eq_ignore_ascii_case(&private)),
+        "still connected"
+    );
+    // Windows uses the same account for the whole server: PublicTest opens as nxprivate.
+    let out = connect(&state, &format!(r"\\{srv}\PublicTest"), None).unwrap();
+    eprintln!("PublicTest on the same server: {:?} managed={}", out.report.status, out.managed);
+    assert_eq!(out.report.status, NetworkStatus::Connected);
+    release_managed(&state, Duration::from_secs(3));
+    assert!(
+        state
+            .api
+            .connected()
+            .unwrap()
+            .iter()
+            .any(|r| r.remote.eq_ignore_ascii_case(&private)),
+        "the operator's connection survives Nexdir's exit"
+    );
+}
+
+/// Phase: a drive letter (`NEXDIR_SAMBA_DRIVE`, e.g. `X`) mapped to PublicTest by the operator.
+#[test]
+#[ignore]
+fn samba_drive_letter_is_shown_once_and_works() {
+    let Some(srv) = server() else { return };
+    let Some(letter) = std::env::var("NEXDIR_SAMBA_DRIVE").ok() else {
+        eprintln!("SKIPPED: NEXDIR_SAMBA_DRIVE not set");
+        return;
+    };
+    let root = PathBuf::from(format!(r"{letter}:\"));
+    let unc = share(&srv, "PublicTest");
+    let state = NetworkState::windows();
+    let o = overview(
+        &state,
+        &[favorites::Favorite {
+            path: unc.display().to_string(),
+            label: "Saved public".into(),
+        }],
+    );
+    let entries: Vec<_> = o
+        .locations
+        .iter()
+        .filter(|l| l.path.eq_ignore_ascii_case(&unc.display().to_string()))
+        .collect();
+    eprintln!(
+        "overview entries for PublicTest: {:?}",
+        entries.iter().map(|l| (&l.label, &l.drive, &l.sources)).collect::<Vec<_>>()
+    );
+    assert_eq!(entries.len(), 1, "drive, connection and favourite are one entry");
+    assert_eq!(entries[0].drive.as_deref(), Some(format!("{letter}:").as_str()));
+    assert!(is_remote(&root));
+    let drives = crate::filesystem::drives::list_drives();
+    let d = drives.iter().find(|d| d.letter == letter).expect("drive listed");
+    eprintln!(
+        "drive {letter}: kind {:?}, available {}, free {:?}",
+        d.kind, d.available, d.free_bytes
+    );
+    assert_eq!(d.kind, crate::filesystem::drives::DriveKind::Network);
+
+    let (dir, vm) = server_dir(&srv, "PublicTest", "/srv/nexdir-test/public", "drive");
+    let via_letter = root.join(dir.file_name().unwrap());
+    let listing = filesystem::list_dir(&via_letter, false).unwrap();
+    assert!(listing.entries.is_empty());
+    let local = tempfile::tempdir().unwrap();
+    random_file(&local.path().join("x.bin"), 5_000_000, 5);
+    let r = run(
+        TransferKind::Copy,
+        vec![local.path().join("x.bin")],
+        &via_letter,
+        ConflictPolicy::Skip,
+    );
+    assert!(r.failures.is_empty(), "{r:?}");
+    assert_eq!(server_sha256(&format!("{vm}/x.bin")), local_sha256(&local.path().join("x.bin")));
+    // Rename-move on the drive works. Drive letter <-> UNC of the same share: Windows treats it
+    // as the same share, so the engine can rename (nothing deleted); the UI refuses it up front
+    // (conservative). Either way the file must exist exactly once.
+    let sub = crate::operations::create_folder(&via_letter, "sub").unwrap();
+    let r = run(TransferKind::Move, vec![via_letter.join("x.bin")], &sub, ConflictPolicy::Skip);
+    assert!(r.failures.is_empty(), "{r:?}");
+    let r = run(TransferKind::Move, vec![sub.join("x.bin")], &dir, ConflictPolicy::Skip);
+    eprintln!(
+        "move drive letter -> UNC of the same share: {:?}",
+        r.failures.iter().map(|f| &f.message).collect::<Vec<_>>()
+    );
+    assert!(
+        sub.join("x.bin").exists() ^ dir.join("x.bin").exists(),
+        "exactly one copy, nothing lost or duplicated"
+    );
+    if r.failures.is_empty() {
+        assert_eq!(server_sha256(&format!("{vm}/x.bin")), local_sha256(&local.path().join("x.bin")));
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Phase: outages (smbd is stopped and started inside the test distro).
 
 /// Shapes both directions of the VM's link (egress on eth0, ingress through ifb0). Only the

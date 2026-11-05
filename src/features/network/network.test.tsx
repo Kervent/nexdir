@@ -178,6 +178,19 @@ describe("Network view", () => {
     expect(a.saveFavorites).toHaveBeenCalledWith([{ path: "\\\\offline-nas\\Archiv", label: "" }, { path: "\\\\NAS\\Privat", label: "" }]);
   });
 
+  it("renames a saved location (name only, path unchanged)", async () => {
+    const a = actions();
+    render(<NetworkView actions={a} />);
+    fireEvent.click(await screen.findByRole("button", { name: "More actions for Archiv" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Rename/ }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Altes NAS" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(a.saveFavorites).toHaveBeenCalledWith([{ path: "\\\\offline-nas\\Archiv", label: "Altes NAS" }]));
+    // Only saved locations can be renamed.
+    fireEvent.click(screen.getByRole("button", { name: "More actions for Medien (Z:)" }));
+    expect(screen.queryByRole("menuitem", { name: /Rename/ })).toBeNull();
+  });
+
   it("shows an empty state with the two main actions", async () => {
     invoke.mockImplementation(async (cmd: string) => (cmd === "network_overview" ? { locations: [], warning: null } : null));
     render(<NetworkView actions={actions({ favorites: [] })} />);

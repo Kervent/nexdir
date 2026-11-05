@@ -14,10 +14,12 @@ import {
   Star,
   StarOff,
   Unplug,
+  Pencil,
   Activity,
   Network,
 } from "lucide-react";
 import { ContextMenu, type MenuEntry } from "../../components/ContextMenu";
+import { Dialog } from "../../components/Dialog";
 import { api, errorMessage } from "../../services/api";
 import type { Discovery, DiscoveredShare, NetworkFavorite, NetworkLocation, NetworkOverview, StatusReport } from "../../types/network";
 import { TaskStatus } from "../tools/shared";
@@ -94,6 +96,7 @@ export function NetworkView({ server, actions }: { server?: string; actions: Net
   const [checking, setChecking] = useState<Record<string, boolean>>({});
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuEntry[] } | null>(null);
   const [connect, setConnect] = useState<{ path: string } | null>(null);
+  const [renaming, setRenaming] = useState<{ path: string; label: string } | null>(null);
   const [serverShares, setServerShares] = useState<{ loading: boolean; shares: DiscoveredShare[] | null; report: StatusReport | null }>({
     loading: false,
     shares: null,
@@ -150,6 +153,7 @@ export function NetworkView({ server, actions }: { server?: string; actions: Net
   };
 
   const isFavorite = (path: string) => actions.favorites.some((f) => f.path.toLowerCase() === path.toLowerCase());
+  const favoriteLabel = (path: string) => actions.favorites.find((f) => f.path.toLowerCase() === path.toLowerCase())?.label;
   const toggleFavorite = async (t: Target) => {
     const list = isFavorite(t.path)
       ? actions.favorites.filter((f) => f.path.toLowerCase() !== t.path.toLowerCase())
@@ -179,6 +183,9 @@ export function NetworkView({ server, actions }: { server?: string; actions: Net
       isFavorite(t.path)
         ? { id: "unfav", label: "Remove from saved", icon: <StarOff size={15} />, onSelect: () => void toggleFavorite(t) }
         : { id: "fav", label: "Save in Network", icon: <Star size={15} />, onSelect: () => void toggleFavorite(t) },
+      ...(isFavorite(t.path)
+        ? [{ id: "rename", label: "Rename…", icon: <Pencil size={15} />, onSelect: () => setRenaming({ path: t.path, label: favoriteLabel(t.path) ?? t.label }) }]
+        : []),
       { id: "copy", label: "Copy network path", icon: <Copy size={15} />, onSelect: () => void navigator.clipboard.writeText(t.path).catch(() => {}) },
       { id: "props", label: "Properties", icon: <Info size={15} />, onSelect: () => actions.showProperties(t.openPath) },
     ];
@@ -362,6 +369,41 @@ export function NetworkView({ server, actions }: { server?: string; actions: Net
       </p>
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {renaming && (
+        <Dialog
+          title="Rename saved location"
+          onClose={() => setRenaming(null)}
+          initialFocus="#nx-rename-saved"
+          footer={
+            <>
+              <button type="button" className="nx-button" onClick={() => setRenaming(null)}>
+                Cancel
+              </button>
+              <button type="submit" form="nx-rename-saved-form" className="nx-button is-primary">
+                Save
+              </button>
+            </>
+          }
+        >
+          <form
+            id="nx-rename-saved-form"
+            className="nx-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const { path, label } = renaming;
+              setRenaming(null);
+              void actions.saveFavorites(actions.favorites.map((f) => (f.path.toLowerCase() === path.toLowerCase() ? { ...f, label: label.trim() } : f)));
+            }}
+          >
+            <label className="nx-field">
+              <span>Name</span>
+              <input id="nx-rename-saved" className="nx-input" value={renaming.label} maxLength={120} onChange={(e) => setRenaming({ ...renaming, label: e.target.value })} />
+            </label>
+            <p className="nx-muted">{renaming.path}</p>
+            <p className="nx-muted">Leave empty to show the share name.</p>
+          </form>
+        </Dialog>
+      )}
       {connect && (
         <ConnectDialog
           initialPath={connect.path}
