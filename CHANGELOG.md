@@ -6,24 +6,36 @@ All notable changes to Nexdir are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0-alpha.1] — 2026-11-05 — network shares and NAS (alpha pre-release)
+
 ### Added
-- **Network shares and NAS (SMB)**, in development: a Network area with the network drives and
-  connections Windows already has, saved shares (visible offline), a server's share list, an
+- **Network shares and NAS (SMB)**: a *Network* area with the network drives and connections
+  Windows already has, saved shares (visible offline, can be renamed), a server's share list, an
   on-demand network search with progress and Stop, manual connection by path with the signed-in
   Windows user or Windows' own sign-in dialog (Nexdir never handles passwords), status checks,
-  and a context menu (open in new tab / other pane, check, sign in, save, copy path, properties,
-  disconnect for Nexdir's own connections). Shares work in tabs and split view; copies to and
-  from shares are verified and flushed. See `docs/features/network-storage.md`.
+  and a context menu (open in new tab / other pane, check, sign in, save, rename, copy path,
+  properties, disconnect for Nexdir's own connections). Shares work in tabs and split view;
+  copies to and from shares are staged, verified and flushed. See
+  `docs/features/network-storage.md`.
+- Help topic *Network shares and NAS*.
 
 ### Changed
+- Copies to network shares write through to the server, so progress, speed and Cancel follow
+  the real transfer on slow links. Local copies are unchanged.
 - Moves that would copy and then delete across a network share (or merge into an existing folder
-  on a share) are refused with an explanation; renames inside a share still work.
+  on a share) are refused with an explanation; renames inside a share still work. Deleting on
+  shares is not available (no Recycle Bin).
 - Network paths are validated more strictly (server and share names, no `IPC$`).
 - Listings, previews and address resolution of network paths are bounded in time; a NAS that does
   not answer no longer ties up background threads.
 - Network errors are explained in plain English (sign-in required, not reachable, other account in
-  use, blocked by Windows, …).
-- Nexdir releases network connections it created itself when it closes.
+  use, blocked by Windows, …) instead of localized system text.
+- Nexdir releases network connections it created itself when it closes; connections made
+  elsewhere are never changed.
+
+### Fixed
+- Notifications could cover the buttons of an open dialog in smaller windows (also in 0.5.0).
+- After cancelling Windows' sign-in dialog, *Sign in…* is offered again right away.
 
 ## [0.5.0-alpha.1] — 2026-11-03 — updates, licenses and credits (alpha pre-release)
 

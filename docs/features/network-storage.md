@@ -1,7 +1,7 @@
 # Network shares and NAS
 
-> **Status: in development** on branch `feature/network-storage-smb`. Not part of a released
-> version yet (latest release: 0.5.0-alpha.1). Planned for a later release, possibly 0.6.0.
+> **New in 0.6.0-alpha.1** (alpha). Tested on Windows 11 with a Samba server; not yet with NAS
+> hardware or on Windows 10 (see *Known limitations*).
 
 Nexdir can show and open Windows file shares (SMB): NAS devices (Synology, QNAP, TrueNAS and
 others), Samba servers, shared folders on other Windows PCs, routers with a storage function and

@@ -1,6 +1,6 @@
 # SMB integration: architecture and security
 
-> Status: in development (`feature/network-storage-smb`), not released. User guide:
+> Status: part of 0.6.0-alpha.1. User guide:
 > [features/network-storage.md](../features/network-storage.md). Tests:
 > [testing/network-storage-tests.md](../testing/network-storage-tests.md).
 
