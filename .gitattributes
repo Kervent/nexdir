@@ -1,2 +1,5 @@
 # Signed test fixtures must stay byte-identical on every checkout.
 src-tauri/tests/fixtures/** -text
+
+# Shell scripts run inside Linux (WSL test server) need LF line endings.
+*.sh text eol=lf
