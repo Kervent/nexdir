@@ -2481,3 +2481,79 @@ select.nx-input {
     outline: 2px solid Highlight;
   }
 }
+
+/* ---- Network view ------------------------------------------------------------------ */
+.nx-network section + section,
+.nx-network .nx-network-server + .nx-network-server {
+  margin-top: var(--nx-space-5);
+}
+.nx-network-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--nx-radius-lg);
+}
+.nx-network-card .nx-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.nx-network-card-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  min-width: 0;
+  padding: var(--nx-space-1) var(--nx-space-2) var(--nx-space-1) var(--nx-space-4);
+  border: 1px solid var(--nx-border);
+  border-top: none;
+  border-radius: 0 0 var(--nx-radius-lg) var(--nx-radius-lg);
+  background: var(--nx-surface);
+  font-size: var(--nx-text-sm);
+}
+.nx-status-chip {
+  flex-shrink: 0;
+  padding: 1px var(--nx-space-2);
+  border-radius: 999px;
+  font-size: var(--nx-text-xs, 11px);
+  font-weight: var(--nx-weight-medium);
+  border: 1px solid currentColor;
+}
+.nx-status-chip.is-ok {
+  color: var(--nx-success);
+}
+.nx-status-chip.is-warn {
+  color: var(--nx-warning);
+}
+.nx-status-chip.is-error {
+  color: var(--nx-danger);
+}
+.nx-status-chip.is-muted {
+  color: var(--nx-text-muted);
+}
+.nx-network-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-3);
+  border: 1px solid var(--nx-border);
+  border-left: 3px solid var(--nx-warning);
+  border-radius: var(--nx-radius-md);
+  background: var(--nx-surface);
+  font-size: var(--nx-text-sm);
+}
+.nx-network-server-name {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  margin: 0 0 var(--nx-space-2);
+  font-size: var(--nx-text-md);
+}
+.nx-network-note {
+  margin-top: var(--nx-space-6);
+  font-size: var(--nx-text-sm);
+}
+.nx-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3);
+  min-width: min(520px, 80vw);
+}

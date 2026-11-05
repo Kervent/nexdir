@@ -57,8 +57,6 @@ impl AppError {
 const ERROR_SHARING_VIOLATION: i32 = 32;
 const ERROR_LOCK_VIOLATION: i32 = 33;
 const ERROR_NOT_READY: i32 = 21;
-const ERROR_BAD_NETPATH: i32 = 53;
-const ERROR_BAD_NET_NAME: i32 = 67;
 const ERROR_FILE_EXISTS: i32 = 80;
 const ERROR_INVALID_NAME: i32 = 123;
 const ERROR_DIRECTORY: i32 = 267;
@@ -67,7 +65,48 @@ const ERROR_WRITE_PROTECT: i32 = 19;
 const ERROR_DISK_FULL: i32 = 112;
 const ERROR_REQUEST_ABORTED: i32 = 1235;
 
+/// Network errors (sign-in, unreachable server, lost connection, policy blocks) get the
+/// explanations of the network module instead of the localised system text.
+fn classify_network(raw: i32) -> Option<(ErrorCode, String)> {
+    use crate::network::status::{self as st, NetworkStatus as S};
+    let code = u32::try_from(raw).ok()?;
+    let network_codes = [
+        st::ERROR_BAD_NETPATH,
+        st::ERROR_UNEXP_NET_ERR,
+        st::ERROR_NETNAME_DELETED,
+        st::ERROR_BAD_NET_NAME,
+        st::ERROR_SESSION_CREDENTIAL_CONFLICT,
+        st::ERROR_NO_NETWORK,
+        st::ERROR_CONNECTION_REFUSED,
+        st::ERROR_NETWORK_UNREACHABLE,
+        st::ERROR_HOST_UNREACHABLE,
+        st::ERROR_LOGON_FAILURE,
+        st::ERROR_ACCOUNT_RESTRICTION,
+        st::ERROR_PASSWORD_EXPIRED,
+        st::ERROR_ACCOUNT_DISABLED,
+        st::ERROR_DOWNGRADE_DETECTED,
+        st::ERROR_SMB_GUEST_LOGON_BLOCKED,
+        st::ERROR_NO_NET_OR_BAD_PATH,
+        st::ERROR_NOT_CONNECTED,
+        st::ERROR_SEM_TIMEOUT,
+    ];
+    if !network_codes.contains(&code) {
+        return None;
+    }
+    let report = st::from_code(code);
+    let error_code = match report.status {
+        S::SignInRequired | S::AccessDenied | S::CredentialConflict | S::BlockedByPolicy => ErrorCode::PermissionDenied,
+        S::NotFound => ErrorCode::NotFound,
+        S::Unreachable | S::ConnectionLost | S::NotConnected | S::TimedOut => ErrorCode::DeviceNotReady,
+        _ => ErrorCode::Io,
+    };
+    Some((error_code, report.message))
+}
+
 fn classify_io(err: &io::Error) -> (ErrorCode, String) {
+    if let Some(network) = err.raw_os_error().and_then(classify_network) {
+        return network;
+    }
     if let Some(raw) = err.raw_os_error() {
         match raw {
             ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION => return (ErrorCode::InUse, "The file is in use by another program.".into()),
@@ -77,7 +116,6 @@ fn classify_io(err: &io::Error) -> (ErrorCode, String) {
                     "The drive is not ready. Insert media or reconnect the drive.".into(),
                 )
             }
-            ERROR_BAD_NETPATH | ERROR_BAD_NET_NAME => return (ErrorCode::NotFound, "The network location could not be reached.".into()),
             ERROR_FILE_EXISTS | ERROR_ALREADY_EXISTS => return (ErrorCode::AlreadyExists, "An item with this name already exists.".into()),
             ERROR_INVALID_NAME => return (ErrorCode::InvalidName, "The name or path syntax is invalid.".into()),
             ERROR_DIRECTORY => return (ErrorCode::NotADirectory, "The path is not a folder.".into()),
@@ -118,6 +156,23 @@ mod tests {
 
         let e = AppError::from_io(&io::Error::from_raw_os_error(80), "C:\\z");
         assert_eq!(e.code, ErrorCode::AlreadyExists);
+    }
+
+    #[test]
+    fn maps_network_errors_with_clear_messages() {
+        let e = AppError::from_io(&io::Error::from_raw_os_error(1326), r"\\nas\x");
+        assert_eq!(e.code, ErrorCode::PermissionDenied);
+        assert!(e.message.contains("Sign-in required"));
+        let e = AppError::from_io(&io::Error::from_raw_os_error(53), r"\\nas\x");
+        assert_eq!(e.code, ErrorCode::DeviceNotReady);
+        let e = AppError::from_io(&io::Error::from_raw_os_error(67), r"\\nas\x");
+        assert_eq!(e.code, ErrorCode::NotFound);
+        let e = AppError::from_io(&io::Error::from_raw_os_error(64), r"\\nas\x");
+        assert!(e.message.contains("interrupted"));
+        // Ordinary "access denied" keeps its general message.
+        let e = AppError::from_io(&io::Error::from_raw_os_error(5), r"C:\x");
+        assert_eq!(e.code, ErrorCode::PermissionDenied);
+        assert!(e.message.starts_with("Access denied"));
     }
 
     #[test]

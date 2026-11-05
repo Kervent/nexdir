@@ -66,7 +66,10 @@ import { useOperations } from "../features/transfers/useOperations";
 import { PreviewPanel } from "../features/preview/PreviewPanel";
 import { TabBar } from "../features/workspace/TabBar";
 import { useVisibleEntries, useWorkspace } from "../features/workspace/useWorkspace";
-import { currentLocation, parentPath, type Location, type PaneState } from "../features/workspace/workspace";
+import { currentLocation, newId, parentPath, type Location, type PaneState } from "../features/workspace/workspace";
+import type { NetworkActions } from "../features/network/NetworkView";
+import { serverOnly } from "../features/network/networkPaths";
+import type { NetworkFavorite } from "../types/network";
 import { asEntry, type ToolContext } from "../features/tools/shared";
 import type { DropEffect } from "../features/dnd/dnd";
 import { formatSize, percent, pluralize } from "../lib/format";
@@ -141,11 +144,21 @@ export function App() {
   const [opsOpen, setOpsOpen] = useState(false);
   const [lastRename, setLastRename] = useState<UndoableRename | null>(null);
   const [touring, setTouring] = useState(false);
+  const [networkFavorites, setNetworkFavorites] = useState<NetworkFavorite[]>([]);
   const paneRefs = useRef(new Map<string, ExplorerPaneHandle>());
   const activeHandle = () => paneRefs.current.get(pane.id);
 
   const wsRef = useRef(ws);
   wsRef.current = ws;
+
+  // ---- Saved network locations (read from Nexdir's settings; no network access) ----
+
+  useEffect(() => {
+    api
+      .networkFavoritesGet()
+      .then(setNetworkFavorites)
+      .catch(() => {});
+  }, []);
 
   // ---- Drives and known folders -------------------------------------------------
 
@@ -419,8 +432,62 @@ export function App() {
     [notify],
   );
 
+  const saveNetworkFavorites = useCallback(
+    async (list: NetworkFavorite[]) => {
+      try {
+        setNetworkFavorites(await api.networkFavoritesSave(list));
+        return true;
+      } catch (e) {
+        notify("error", "Could not save the network location.", errorMessage(e));
+        return false;
+      }
+    },
+    [notify],
+  );
+
+  const networkActions = useCallback(
+    (p: PaneState): NetworkActions => ({
+      navigate: (to) => navigate(p.id, to),
+      openInNewTab: (to) => openTab(to, true),
+      openInOtherPane: (path) => {
+        const t = wsRef.current.tabs.find((x) => x.panes.includes(p.id));
+        const other = t?.panes.find((id) => id !== p.id);
+        if (other) return navigate(other, { type: "folder", path });
+        // Not split yet: open split view with the share in the new pane.
+        const id = newId("p");
+        dispatch({ type: "toggleSplit", paneId: id });
+        dispatch({ type: "navigate", pane: id, to: { type: "folder", path } });
+      },
+      showProperties,
+      notify,
+      favorites: networkFavorites,
+      saveFavorites: saveNetworkFavorites,
+    }),
+    [navigate, openTab, dispatch, showProperties, notify, networkFavorites, saveNetworkFavorites],
+  );
+
+  /** "Sign in…" on a network folder that refused access: Windows' own dialog, then reload. */
+  const networkSignIn = useCallback(
+    async (p: PaneState, path: string) => {
+      try {
+        const out = await api.networkConnect(path, true);
+        if (out.report.status === "connected") dispatch({ type: "refresh", pane: p.id });
+        else if (out.report.status !== "cancelled") notify("error", out.report.message, out.report.code !== null ? `Windows error ${out.report.code}` : undefined);
+      } catch (e) {
+        notify("error", "Could not connect.", errorMessage(e));
+      }
+    },
+    [dispatch, notify],
+  );
+
   const submitAddress = useCallback(
     async (p: PaneState, text: string): Promise<string | null> => {
+      // A server alone (\\NAS) is not a folder: show its shares in the Network view.
+      const server = serverOnly(text);
+      if (server) {
+        navigate(p.id, { type: "network", server });
+        return null;
+      }
       try {
         const resolved = await api.resolvePath(text);
         navigate(p.id, { type: "folder", path: resolved.path }, resolved.select ?? undefined);
@@ -762,6 +829,7 @@ export function App() {
           knownFolders={knownFolders}
           drives={drives}
           pinned={prefs.pinned}
+          networkFavorites={networkFavorites}
           onNavigate={(to) => navigate(pane.id, to)}
           onUnpin={(path) => updatePrefs({ pinned: prefs.pinned.filter((p) => !samePath(p.path, path)) })}
           onOpenInNewTab={(to) => openTab(to, true)}
@@ -798,6 +866,8 @@ export function App() {
                       onSubmitAddress={submitAddress}
                       onRefreshHome={loadDrives}
                       toolContext={toolContext}
+                      networkActions={networkActions}
+                      onNetworkSignIn={(pp, path) => void networkSignIn(pp, path)}
                     />
                   </Fragment>
                 );

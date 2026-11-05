@@ -45,7 +45,7 @@ export const AddressBar = forwardRef<AddressBarHandle, AddressBarProps>(function
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const path = location.type === "folder" ? location.path : "";
+  const path = location.type === "folder" ? location.path : location.type === "network" && location.server ? `\${location.server}` : "";
 
   const startEditing = () => {
     setText(path);
@@ -115,6 +115,22 @@ export const AddressBar = forwardRef<AddressBarHandle, AddressBarProps>(function
             {TOOL_LABELS[location.tool]}
             {location.path ? ` · ${location.path}` : ""}
           </span>
+        </span>
+      )}
+      {location.type === "network" && (
+        <span className="nx-crumb-wrap">
+          <ChevronRight size={14} className="nx-crumb-sep" aria-hidden="true" />
+          {location.server ? (
+            <>
+              <button type="button" className="nx-crumb" onClick={() => onNavigate({ type: "network" })}>
+                Network
+              </button>
+              <ChevronRight size={14} className="nx-crumb-sep" aria-hidden="true" />
+              <span className="nx-crumb is-current">{location.server}</span>
+            </>
+          ) : (
+            <span className="nx-crumb is-current">Network</span>
+          )}
         </span>
       )}
       {location.type === "home" && (

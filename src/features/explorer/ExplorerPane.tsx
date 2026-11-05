@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, type Dispatch } from "react";
-import { ArrowLeft, ArrowRight, ArrowUp, FolderX, RefreshCw, Search, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, FolderX, KeyRound, Network, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import { FileView } from "./FileView";
 import { HomeView } from "./HomeView";
 import { AddressBar, type AddressBarHandle } from "../navigation/AddressBar";
@@ -15,6 +15,8 @@ import { StorageView } from "../tools/StorageView";
 import { DuplicatesView } from "../tools/DuplicatesView";
 import { SearchView } from "../tools/SearchView";
 import { OrganizeView } from "../tools/OrganizeView";
+import { NetworkView, type NetworkActions } from "../network/NetworkView";
+import { isNetworkPath } from "../network/networkPaths";
 
 export interface ExplorerPaneHandle {
   editAddress: () => void;
@@ -40,6 +42,9 @@ interface ExplorerPaneProps {
   onSubmitAddress: (pane: PaneState, text: string) => Promise<string | null>;
   onRefreshHome: () => void;
   toolContext: (pane: PaneState) => ToolContext;
+  networkActions: (pane: PaneState) => NetworkActions;
+  /** Shows Windows' sign-in dialog for a network folder, then reloads it. */
+  onNetworkSignIn: (pane: PaneState, path: string) => void;
 }
 
 /** One explorer view: its own navigation row, address bar, filter and content. */
@@ -68,6 +73,9 @@ export const ExplorerPane = forwardRef<ExplorerPaneHandle, ExplorerPaneProps>(fu
     if (location.type === "home") {
       return <HomeView knownFolders={knownFolders} drives={drives} pinned={prefs.pinned} onNavigate={(to) => navigate(to)} />;
     }
+    if (location.type === "network") {
+      return <NetworkView key={location.server ?? ""} server={location.server} actions={props.networkActions(pane)} />;
+    }
     if (location.type === "tool") {
       const ctx = props.toolContext(pane);
       const key = `${location.tool}:${location.path ?? ""}`;
@@ -84,19 +92,31 @@ export const ExplorerPane = forwardRef<ExplorerPaneHandle, ExplorerPaneProps>(fu
     }
     if (pane.error) {
       const denied = pane.error.code === "permissionDenied";
+      const onNetwork = isNetworkPath(location.path, drives);
       return (
         <div className="nx-state" role="alert">
           {denied ? <TriangleAlert size={40} /> : <FolderX size={40} />}
-          <h2>{denied ? "Access denied" : "This location can't be opened"}</h2>
+          <h2>{denied ? "Access denied" : onNetwork ? "This network location can't be opened" : "This location can't be opened"}</h2>
           <p>{pane.error.message}</p>
           <p className="nx-state-path">{location.path}</p>
           <div className="nx-state-actions">
             <button type="button" className="nx-button" onClick={() => dispatch({ type: "refresh", pane: pane.id })}>
               Try again
             </button>
-            <button type="button" className="nx-button is-primary" onClick={() => navigate(HOME)}>
-              Go to Home
-            </button>
+            {onNetwork && denied && /^\\\\/.test(location.path) && (
+              <button type="button" className="nx-button" onClick={() => props.onNetworkSignIn(pane, location.path)}>
+                <KeyRound size={15} /> Sign in…
+              </button>
+            )}
+            {onNetwork ? (
+              <button type="button" className="nx-button is-primary" onClick={() => navigate({ type: "network" })}>
+                <Network size={15} /> Go to Network
+              </button>
+            ) : (
+              <button type="button" className="nx-button is-primary" onClick={() => navigate(HOME)}>
+                Go to Home
+              </button>
+            )}
           </div>
         </div>
       );
