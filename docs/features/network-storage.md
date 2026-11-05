@@ -39,7 +39,7 @@ Each card has a status (*Connected*, *Not connected*, *Not reachable*, *Sign-in 
 - **Open**, **Open in new tab**, **Open in other pane** (switches split view on)
 - **Check connection**: asks the server now
 - **Sign in with Windows…**: Windows' own sign-in dialog (see below)
-- **Save in Network** / **Remove from saved**
+- **Save in Network** / **Remove from saved** / **Rename…** (saved shares: changes only the name)
 - **Copy network path**, **Properties**
 - **Disconnect**: only for connections Nexdir created itself
 
@@ -95,7 +95,16 @@ right). Available on shares:
 | Storage analysis, duplicate search, search | ✓ (read-only) | Duplicate *removal* on shares is refused, because it would delete. |
 
 If a share does not answer, Nexdir shows that it is not reachable after a short time and stays
-usable. Folders on a share that refuse access offer **Sign in…** and **Go to Network**.
+usable; other tabs and the other pane keep working.
+
+**Copies to a share on slow networks.** Progress and speed show the real transfer, and **Cancel**
+stops a copy within a fraction of a second. On links with high latency Nexdir copies more slowly
+than Explorer, because each part is confirmed by the server before the next one is sent.
+
+**If the server disappears during a copy**, the copy is reported as failed, the original stays
+untouched, nothing appears under the final name and an existing file on the share keeps its old
+content. A temporary file named `~nexdir-….partial` may remain on the share; the message names it,
+and you can delete it once the share is back. Folders on a share that refuse access offer **Sign in…** and **Go to Network**.
 
 Up (Alt+↑) from the root of a share opens the share list of its server.
 
@@ -120,5 +129,7 @@ and name only).
   are shown and used.
 - Windows' network list is often empty on current Windows versions, so discovery may only show
   servers you already know.
-- Tested over real SMB on the same PC (Windows loopback) and with test doubles. Not yet tested on
-  NAS hardware (see [network-storage-tests.md](../testing/network-storage-tests.md)).
+- Tested with a real Samba server on a virtual network (WSL), over Windows' SMB loopback and with
+  test doubles. Not yet tested on NAS hardware (see
+  [network-storage-tests.md](../testing/network-storage-tests.md) and
+  [network-storage-acceptance.md](../reports/network-storage-acceptance.md)).

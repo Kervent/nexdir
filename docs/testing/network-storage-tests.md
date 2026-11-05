@@ -44,9 +44,11 @@ The real SMB tests are `#[ignore]` by default: CI runners and standard user acco
 | Transfer engine: copy-and-delete moves across a share refused (nothing changed), merge moves refused, rename moves inside a share work, copies to a share work and never touch the source | `transfer::tests::network_*` (4) | PASS |
 | Frontend: path helpers, move pre-check, status tones, Up from share root, session restore of network locations, Network view (no network calls on open, menu, check, search only on click, connect + sign-in flow, saving, empty state) | `src/features/network/network.test.tsx` (11) | PASS |
 
-Totals on 2026-11-05: Rust 191 passed, 0 failed, 15 ignored (9 real SMB tests below + 6
-pre-existing); frontend 163 passed in 12 files; `cargo clippy --all-targets -D warnings` clean;
-`cargo fmt --check` clean; `tsc` clean; third-party notices up to date (no new dependencies).
+Totals on 2026-11-05 (final): Rust 193 passed, 0 failed, 26 ignored (9 loopback SMB tests and 11
+Samba tests below, run separately + 6 pre-existing), plus 10 integration tests; frontend 164
+passed in 12 files; `cargo clippy --all-targets -D warnings` clean; `cargo fmt --check` clean;
+`tsc` clean; third-party notices up to date (no new dependencies); npm audit 0 vulnerabilities;
+cargo audit only the 2 pre-existing allowed warnings.
 
 ## Real SMB integration tests (Windows loopback)
 
@@ -95,34 +97,62 @@ Total: 17/17 PASS (final run). Earlier runs found and fixed: share list of a bar
 failed; connect dialog overflowed with long paths; header buttons wrapped; connections created
 by Nexdir stayed after exit; refused moves were only explained in the operation details.
 
+## Samba server on a virtual network (acceptance, 2026-11-05)
+
+A real Samba 4.22 server in a dedicated WSL distro, reached by Windows' SMB client over WSL's
+host-internal NAT network (SMB 3.1.1, signing). Setup: [tools/network-test](../../tools/network-test/README.md).
+Full results: [network-storage-acceptance.md](../reports/network-storage-acceptance.md).
+
+| Area | Result |
+|---|---|
+| Discovery, shares, manual connection, invalid paths, unreachable hosts | PASS |
+| Authentication: Credential Manager, no permission, existing connection, conflict 1219 | PASS |
+| File operations both ways, share → share, read-only share, conflicts, drive letter, SHA-256 on server | PASS |
+| Outages early/late/during Replace, listing/rename/status during outage, recovery | PASS |
+| Slow links (100/20 Mbit/s, latency, loss): progress, Cancel, integrity | PASS |
+| Samba GUI test, 17 steps (tabs, split view local↔NAS and NAS↔NAS, favourites incl. rename and offline, outage in split view, slow copy with Cancel) | 17/17 PASS |
+| Windows' sign-in dialog with typed credentials | NOT TESTED (manual check below) |
+
+### Manual check: Windows sign-in dialog (needs a person, about 5 minutes)
+
+Nexdir never types credentials into Windows' dialog. To check it with the test server:
+
+1. Remove stored credentials: `tools/network-test/credhelper.ps1 -Action remove-cred`, and make sure
+   `net use` lists no connection to the test server.
+2. In Nexdir: *Network → Add network share* → `\\<server>\PrivateTest` → *Connect* → shows
+   *Sign-in required* → *Sign in…*.
+3. Windows' dialog appears (owned by Nexdir). Check: **Cancel** → *Sign-in cancelled*, nothing
+   connected; **wrong password** → Windows asks again or Nexdir shows *Sign-in required*; **empty
+   user name** → Windows does not accept it; **nxprivate + correct password** (from
+   `tools/network-test/secrets/creds.json`) → the share opens.
+4. Optional: tick "Remember my credentials" → Credential Manager entry for the server exists;
+   remove it afterwards with `credhelper.ps1 -Action remove-cred`.
+
 ## Regression (existing GUI suite of 0.5.0)
 
 The release GUI suite (42 steps: navigation, tabs, split view, copy/move/rename/Recycle Bin,
 conflicts, 20,000-file folder, duplicates, storage analysis, search, dialogs, help, updates
-check) was run against the branch build, and for comparison against an unchanged build of tag
-`v0.5.0-alpha.1`, both with isolated profiles:
+check), both builds with isolated profiles in the same 1240×780 window:
 
 | Build | Result | Failing steps |
 |---|---|---|
-| Branch | 40/42 | 2× *Report a Bug* (dialog flow) |
-| Unchanged v0.5.0-alpha.1 | 38/42 | the same 2× *Report a Bug*, plus 2 first-start steps (its profile had already completed the first start) |
+| Branch (final) | 42/42 | — |
+| Unchanged v0.5.0-alpha.1 | 41/42 | Help topics (the new topic *Network shares and NAS* is not in 0.5.0, expected) |
 
-The two *Report a Bug* steps fail identically on the unchanged release build: harness/environment
-issue, not caused by this feature. A storage-analysis step failed on the branch only at the
-default window height (a notification covered the button the harness clicks); with the same
-window size as the baseline it passes. Rust and frontend unit suites (including all pre-existing
-tests) pass completely.
+Root cause of the two *Report a Bug* failures in earlier runs (also on the unchanged release
+build): notifications from previous steps lay over the dialog's primary button in this window
+size. Fixed in the product (notifications stay beneath modal dialogs). The harness now waits for
+an auto-dismissed notification over page content, as a user would; other obstructions still fail.
 
 ## NOT TESTED / SKIPPED
 
 | Case | Status | Reason |
 |---|---|---|
-| NAS hardware (Synology, QNAP, TrueNAS), Samba on Linux, another Windows PC | NOT TESTED | No device available. |
-| Sign-in with different credentials (Windows dialog), "remember credentials" | NOT TESTED | Needs a share that requires other credentials; the loopback share accepts the signed-in user. Flow tested with test doubles. |
-| `ERROR_SESSION_CREDENTIAL_CONFLICT`, guest-blocked, signing-required servers | NOT TESTED (real) | Mapping and UI tested with test doubles. |
-| Connection loss during a transfer (cable pulled, NAS switched off) | NOT TESTED | Needs a second device. Engine behaviour on failures is covered by the existing staged-copy tests (temporary file removed or reported, existing file intact). |
-| Slow links, large files over a real network, many tabs on a slow NAS | NOT TESTED | Bounded waiting proven with test doubles and the gate tests. |
-| Mapped drive letters (`Z:`) of real shares | NOT TESTED | No mapped drive on the test PC; merging and display tested with test doubles. |
+| NAS hardware (Synology, QNAP, TrueNAS), Samba on a separate physical machine | NOT TESTED | No device available; Samba tested on a virtual network. |
+| Windows' sign-in dialog with typed credentials, "remember credentials" | NOT TESTED | Needs a person (manual check above). Cancel and the error mapping are covered. |
+| Guest-blocked and signing-incompatible servers | NOT TESTED (real) | The test server enforces signing and refuses guests; mapping tested with test doubles. |
+| Server names (name resolution of the test server) | NOT TESTED | Would need hosts/DNS changes. |
+| Physical connection loss (cable, Wi-Fi) | NOT TESTED | Simulated by stopping Samba. |
 | Windows 10 | NOT TESTED | Only Windows 11 available. |
-| NSIS / MSI / portable packages of this branch | SKIPPED | No release planned yet; the branch was built with `--no-bundle`. Packaging is unchanged. |
-| Creating a test share on the main PC | SKIPPED | Would change sharing settings; requires the owner's explicit consent. |
+| NSIS / MSI / portable packages of this branch | SKIPPED | No release planned; branch built with `--no-bundle`. Packaging unchanged. |
+| Creating a test share on the main PC | SKIPPED | Not needed (Samba VM); would change sharing settings. |
