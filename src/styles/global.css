@@ -1014,6 +1014,13 @@ p {
   right: var(--nx-space-4);
   bottom: calc(var(--nx-statusbar-height) + var(--nx-space-3));
   z-index: 70;
+}
+/* While a modal dialog is open, notifications stay beneath it: in smaller windows they would
+   otherwise cover the dialog's buttons (bottom right). Errors stay until dismissed. */
+body:has(.nx-overlay) .nx-toasts {
+  z-index: 55;
+}
+.nx-toasts {
   display: flex;
   flex-direction: column;
   gap: var(--nx-space-2);
