@@ -72,6 +72,9 @@ pub struct Registry {
 }
 
 impl Registry {
+    pub fn all(&self) -> Vec<String> {
+        self.managed.lock().unwrap().iter().cloned().collect()
+    }
     pub fn insert(&self, share_root: &str) {
         self.managed.lock().unwrap().insert(share_root.to_lowercase());
     }
@@ -492,6 +495,18 @@ pub fn disconnect(state: &NetworkState, input: &str) -> AppResult<StatusReport> 
         Ok(Err(code)) => status::from_code(code),
         Err(e) => gate_report(e),
     })
+}
+
+/// Releases every connection Nexdir created (at exit). Not forced and bounded in time: a
+/// connection that is still in use, or a server that does not answer, is left to Windows.
+pub fn release_managed(state: &NetworkState, timeout: Duration) {
+    for root in state.registry.all() {
+        let api = state.api.clone();
+        let r = root.clone();
+        if let Ok(Ok(())) = state.gate.run(timeout, move || api.cancel_connection(&r)) {
+            state.registry.remove(&root);
+        }
+    }
 }
 
 #[cfg(test)]

@@ -100,6 +100,17 @@ pub fn run() {
             updater::update_install,
             updater::update_open_release,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Nexdir");
+        .build(tauri::generate_context!())
+        .expect("error while running Nexdir")
+        .run(|app, event| {
+            // Connections Nexdir opened itself are released when Nexdir exits (never forced;
+            // a connection still in use by another program stays). Windows' own connections
+            // and network drives are not touched.
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                if let Some(state) = app.try_state::<std::sync::Arc<network::NetworkState>>() {
+                    network::release_managed(&state, std::time::Duration::from_secs(3));
+                }
+            }
+        });
 }

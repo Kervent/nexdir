@@ -72,6 +72,7 @@ export function ConnectDialog({ initialPath = "", onClose, onConnected, onShowSe
   return (
     <Dialog
       title="Connect to a network share"
+      className="is-wide"
       onClose={onClose}
       initialFocus="#nx-connect-path"
       footer={

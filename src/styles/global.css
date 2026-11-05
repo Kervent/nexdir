@@ -2551,9 +2551,20 @@ select.nx-input {
   margin-top: var(--nx-space-6);
   font-size: var(--nx-text-sm);
 }
+.nx-network .nx-tool-header {
+  flex-wrap: wrap;
+}
+.nx-network .nx-tool-header .nx-button {
+  white-space: nowrap;
+}
 .nx-form {
   display: flex;
   flex-direction: column;
   gap: var(--nx-space-3);
-  min-width: min(520px, 80vw);
+  width: 100%;
+  min-width: 0;
+}
+.nx-form p,
+.nx-network-result {
+  overflow-wrap: anywhere;
 }

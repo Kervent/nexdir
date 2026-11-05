@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { isNetworkPath, isUncPath, needsSignIn, serverOnly, statusTone } from "./networkPaths";
+import { isNetworkPath, isUncPath, moveBlockedReason, needsSignIn, NETWORK_MOVE_REFUSED, serverOnly, statusTone } from "./networkPaths";
 import { NetworkView, type NetworkActions } from "./NetworkView";
 import { createPane, isValidSession, parentOf, sameLocation, type PaneState } from "../workspace/workspace";
 import type { DriveInfo } from "../../types/fs";
@@ -33,6 +33,17 @@ describe("network paths", () => {
     expect(isNetworkPath("Z:\\Filme", drives)).toBe(true);
     expect(isNetworkPath("C:\\Users", drives)).toBe(false);
     expect(isNetworkPath("\\\\nas\\x", [])).toBe(true);
+  });
+
+  it("refuses moves across a share boundary before they start, allows renames inside a share", () => {
+    const drives = [{ letter: "Z", kind: "network" }, { letter: "C", kind: "fixed" }, { letter: "D", kind: "fixed" }] as DriveInfo[];
+    expect(moveBlockedReason(["\\\\NAS\\Media\\a.txt"], "C:\\Users\\me", drives)).toBe(NETWORK_MOVE_REFUSED);
+    expect(moveBlockedReason(["C:\\x.txt"], "\\\\nas\\media", drives)).toBe(NETWORK_MOVE_REFUSED);
+    expect(moveBlockedReason(["\\\\nas\\media\\a"], "\\\\nas\\backup", drives)).toBe(NETWORK_MOVE_REFUSED);
+    expect(moveBlockedReason(["Z:\\a"], "C:\\b", drives)).toBe(NETWORK_MOVE_REFUSED);
+    expect(moveBlockedReason(["\\\\NAS\\Media\\a"], "\\\\nas\\media\\sub", drives)).toBeNull();
+    expect(moveBlockedReason(["Z:\\a"], "Z:\\b", drives)).toBeNull();
+    expect(moveBlockedReason(["C:\\a"], "D:\\b", drives)).toBeNull();
   });
 
   it("maps statuses to tones and sign-in hints", () => {
