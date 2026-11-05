@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Columns2, House, Folder, Plus, X } from "lucide-react";
+import { Columns2, House, Folder, Plus, X, Network } from "lucide-react";
 import { currentLocation, locationLabel, type Workspace } from "./workspace";
 import { TOOL_ICONS } from "../navigation/Sidebar";
 
@@ -37,14 +37,14 @@ export function TabBar({ ws, onActivate, onClose, onNew, onMove }: TabBarProps) 
           const loc = currentLocation(pane);
           const label = locationLabel(loc);
           const active = tab.id === ws.activeTab;
-          const Icon = loc.type === "home" ? House : loc.type === "tool" ? TOOL_ICONS[loc.tool] : Folder;
+          const Icon = loc.type === "home" ? House : loc.type === "network" ? Network : loc.type === "tool" ? TOOL_ICONS[loc.tool] : Folder;
           return (
             <div
               key={tab.id}
               role="tab"
               aria-selected={active}
               tabIndex={active ? 0 : -1}
-              title={loc.type === "home" ? "Home" : (loc.path ?? label)}
+              title={loc.type === "home" ? "Home" : loc.type === "network" ? (loc.server ? `\${loc.server}` : "Network") : (loc.path ?? label)}
               className={`nx-tab${active ? " is-active" : ""}${dropIndex === index ? " is-drop-before" : ""}`}
               draggable
               onClick={() => onActivate(tab.id)}

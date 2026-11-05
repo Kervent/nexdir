@@ -9,6 +9,7 @@ import {
   Monitor,
   Music,
   Network,
+  Server,
   ChartPie,
   Files,
   Pin,
@@ -23,6 +24,7 @@ import type { DriveInfo, DriveKind, KnownFolder, KnownFolderId } from "../../typ
 import type { PinnedFolder } from "../settings/preferences";
 import { sameLocation, TOOL_LABELS, type Location, type ToolId } from "../workspace/workspace";
 import { useDropTarget, type DropEffect } from "../dnd/dnd";
+import type { NetworkFavorite } from "../../types/network";
 
 export const KNOWN_ICONS: Record<KnownFolderId, LucideIcon> = {
   home: User,
@@ -55,6 +57,8 @@ interface SidebarProps {
   knownFolders: KnownFolder[];
   drives: DriveInfo[];
   pinned: PinnedFolder[];
+  /** Saved network locations; shown without contacting the servers. */
+  networkFavorites: NetworkFavorite[];
   onNavigate: (to: Location) => void;
   onUnpin: (path: string) => void;
   onOpenInNewTab: (to: Location) => void;
@@ -98,7 +102,7 @@ function Item({ icon: Icon, label, active, onClick, title, action, path, onMiddl
   );
 }
 
-export function Sidebar({ location, knownFolders, drives, pinned, onNavigate, onUnpin, onOpenInNewTab, onDropPaths }: SidebarProps) {
+export function Sidebar({ location, knownFolders, drives, pinned, networkFavorites, onNavigate, onUnpin, onOpenInNewTab, onDropPaths }: SidebarProps) {
   const folderProps = (path: string) => ({
     path,
     onDropPaths,
@@ -171,6 +175,22 @@ export function Sidebar({ location, knownFolders, drives, pinned, onNavigate, on
             {...(d.available ? folderProps(d.path) : {})}
           />
         ))}
+      </ul>
+
+      <h3 className="nx-side-heading">Network</h3>
+      <ul className="nx-side-list">
+        <Item
+          icon={Network}
+          label="Network"
+          title="Network drives, shares and NAS devices"
+          active={location.type === "network"}
+          onClick={() => onNavigate({ type: "network" })}
+          onMiddleClick={() => onOpenInNewTab({ type: "network" })}
+        />
+        {networkFavorites.map((f) => {
+          const name = f.label || f.path.split("\\").filter(Boolean).pop() || f.path;
+          return <Item key={f.path} icon={Server} label={name} title={f.path} active={isAt(f.path)} onClick={() => onNavigate({ type: "folder", path: f.path })} {...folderProps(f.path)} />;
+        })}
       </ul>
     </nav>
   );

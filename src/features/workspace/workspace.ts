@@ -6,8 +6,13 @@ import type { ApiError, DirListing } from "../../types/fs";
 
 export type ToolId = "search" | "storage" | "duplicates" | "organize";
 
-/** Where a pane is: Home, a folder, or one of the tools (optionally bound to a folder). */
-export type Location = { type: "home" } | { type: "folder"; path: string } | { type: "tool"; tool: ToolId; path?: string };
+/** Where a pane is: Home, a folder, one of the tools (optionally bound to a folder), or the
+ *  Network overview (optionally showing the shares of one server). */
+export type Location =
+  | { type: "home" }
+  | { type: "folder"; path: string }
+  | { type: "tool"; tool: ToolId; path?: string }
+  | { type: "network"; server?: string };
 
 export const TOOL_IDS: ToolId[] = ["search", "storage", "duplicates", "organize"];
 
@@ -19,10 +24,12 @@ export const TOOL_LABELS: Record<ToolId, string> = {
 };
 
 export const HOME: Location = { type: "home" };
+export const NETWORK: Location = { type: "network" };
 
 export function sameLocation(a: Location, b: Location): boolean {
   if (a.type !== b.type) return false;
   if (a.type === "home") return true;
+  if (a.type === "network") return (a.server ?? "").toLowerCase() === ((b as { server?: string }).server ?? "").toLowerCase();
   if (a.type === "folder") return samePath(a.path, (b as { path: string }).path);
   const t = b as { tool: ToolId; path?: string };
   return a.tool === t.tool && (a.path && t.path ? samePath(a.path, t.path) : a.path === t.path);
@@ -30,6 +37,7 @@ export function sameLocation(a: Location, b: Location): boolean {
 
 export function locationLabel(loc: Location): string {
   if (loc.type === "home") return "Home";
+  if (loc.type === "network") return loc.server ?? "Network";
   if (loc.type === "tool") return loc.path ? `${TOOL_LABELS[loc.tool]}: ${baseName(loc.path)}` : TOOL_LABELS[loc.tool];
   return baseName(loc.path);
 }
@@ -135,7 +143,10 @@ export function parentOf(pane: PaneState): { to: Location; select?: string } | n
   if (loc.type !== "folder") return null;
   const parent = pane.listing && samePath(pane.listing.path, loc.path) ? pane.listing.parent : parentPath(loc.path);
   const child = baseName(loc.path);
-  return parent ? { to: { type: "folder", path: parent }, select: child } : { to: HOME };
+  if (parent) return { to: { type: "folder", path: parent }, select: child };
+  // Up from a network share goes to the shares of its server in the Network view.
+  const unc = /^\\\\([^\\]+)\\[^\\]+\\?$/.exec(loc.path);
+  return unc ? { to: { type: "network", server: unc[1] } } : { to: HOME };
 }
 
 /** Lexical parent of a Windows path; null for drive and share roots. */
@@ -289,6 +300,7 @@ export function isValidSession(value: unknown): value is SavedSession {
         t.locations.every(
           (l) =>
             l?.type === "home" ||
+            (l?.type === "network" && (l.server === undefined || typeof l.server === "string")) ||
             (l?.type === "folder" && typeof l.path === "string") ||
             (l?.type === "tool" && TOOL_IDS.includes(l.tool) && (l.path === undefined || typeof l.path === "string")),
         ),

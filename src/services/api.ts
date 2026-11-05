@@ -18,6 +18,7 @@ import type {
 } from "../types/fs";
 import type { SystemInfo } from "../features/help/report";
 import type { CheckResult, UpdateInfo, UpdateProgress, UpdateSnapshot, UserUpdateSettings } from "../features/updates/types";
+import type { ConnectOutcome, NetworkFavorite, NetworkOverview, ParsedNetworkPath, SharesResult, StatusReport } from "../types/network";
 import type { DuplicateRemoval, IndexSettings, IndexStatus, Plan, Rule, SearchQuery, SearchResult, TaskProgress } from "../types/tools";
 
 export function isApiError(value: unknown): value is ApiError {
@@ -79,6 +80,18 @@ export const api = {
   rulesSave: (rules: Rule[]) => invoke<void>("rules_save", { rules }),
   organizePreview: (rule: Rule) => invoke<Plan>("organize_preview", { rule }),
   organizeApply: (rule: Rule, sources: string[]) => invoke<number>("organize_apply", { rule, sources }),
+  // Network storage: Windows' own connections and SMB client; servers are contacted only
+  // after a user action (open, search, connect, check).
+  networkParse: (input: string) => invoke<ParsedNetworkPath>("network_parse", { input }),
+  networkOverview: () => invoke<NetworkOverview>("network_overview"),
+  networkProbe: (path: string) => invoke<StatusReport>("network_probe", { path }),
+  networkListShares: (server: string) => invoke<SharesResult>("network_list_shares", { server }),
+  networkDiscover: () => invoke<number>("network_discover"),
+  /** `signIn` shows Windows' own sign-in dialog; Nexdir never sees the credentials. */
+  networkConnect: (path: string, signIn: boolean) => invoke<ConnectOutcome>("network_connect", { path, signIn }),
+  networkDisconnect: (path: string) => invoke<StatusReport>("network_disconnect", { path }),
+  networkFavoritesGet: () => invoke<NetworkFavorite[]>("network_favorites_get"),
+  networkFavoritesSave: (favorites: NetworkFavorite[]) => invoke<NetworkFavorite[]>("network_favorites_save", { favorites }),
   /** Closes Nexdir after cancelling running copy/move jobs (the user confirmed it). */
   confirmClose: () => invoke<void>("confirm_close"),
   onCloseBlocked: (handler: (running: number) => void): Promise<UnlistenFn> => listen<number>("close-blocked", (event) => handler(event.payload)),
