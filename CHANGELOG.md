@@ -6,7 +6,7 @@ All notable changes to Nexdir are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.6.0-alpha.1] — 2026-11-05 — network shares and NAS (alpha pre-release)
+## [0.6.0-alpha.1] — 2026-11-06 — network shares and NAS (alpha pre-release)
 
 ### Added
 - **Network shares and NAS (SMB)**: a *Network* area with the network drives and connections

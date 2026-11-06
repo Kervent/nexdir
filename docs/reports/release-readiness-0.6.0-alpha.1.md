@@ -12,9 +12,9 @@ not run is never reported as PASS.
 | Previous release | 0.5.0-alpha.1 (tag `v0.5.0-alpha.1`, commit `ccc93d3`) — not changed |
 | Starting point | `main` at `f0fd887` (network storage merged via Kervent/nexdir#7) |
 | Release branch | `release/0.6.0-alpha.1` |
-| Release commit | set when the release PR is merged; the tag must point to that merge commit |
+| Release commit | `805c29348c5b679aa6aa1621d0e38efe2479451c` (merge of Kervent/nexdir#8), tag `v0.6.0-alpha.1` |
 | Main change | Native network shares and NAS (SMB) through Windows' own SMB client |
-| Result | **Ready for the release PR and a signed draft release.** No open defect blocks it. Not tested: NAS hardware, Windows 10, physical network loss (see the end). |
+| Result | **Published 2026-11-06 as a signed pre-release**; the update from the published 0.5.0-alpha.1 works for the per-user setup and the MSI. Not tested: NAS hardware, Windows 10, physical network loss (see *Not tested*). |
 
 ## Changes since 0.5.0-alpha.1
 
@@ -248,15 +248,67 @@ needs its own outage and integrity tests. Planned for a later version.
 | Server names (name resolution), physical cable/Wi-Fi loss | NOT TESTED | Would need DNS/hosts changes or another machine; outages were simulated by stopping Samba |
 | "Remember my credentials" in Windows' dialog | NOT TESTED | Windows feature; not needed for Nexdir's behaviour |
 | One-time "updated" message after an MSI update | NOT TESTED | See above; same code passed in the NSIS path |
-| Real update path with the production key and the real preview feed | NOT TESTED yet | Only possible after publication |
+| Download progress percentages on the real update path | NOT TESTED | 3.4–4.6 MB from GitHub finished between two samples; covered by `updater_signatures` tests |
 | Cancelled UAC prompt during an MSI update, broken but validly signed MSI | NOT TESTED | Carried over from 0.5.0 |
 
-## After publication (separate test)
+## Release and publication (2026-11-06)
 
-1. Check the published files against `SHA256SUMS.txt` and verify both `.sig` files against the
-   production public key for version 0.6.0-alpha.1 (`update_feed.py --verify`).
-2. Check the *Update feed* run: `preview.json` names 0.6.0-alpha.1, `stable.json` still has no
-   release.
-3. On a test installation of the **published** 0.5.0-alpha.1 (NSIS, and MSI if possible): *Check
-   for Updates* finds 0.6.0-alpha.1, download, verify, install, restart, settings kept.
-4. The owner's own installation is not updated by the tests.
+| Step | Result |
+|---|---|
+| Release PR Kervent/nexdir#8: all 12 checks green, merged by rebase; content identical to the tested PR head | PASS |
+| Release commit on `main` | `805c29348c5b679aa6aa1621d0e38efe2479451c` |
+| Tag `v0.6.0-alpha.1` (annotated) points exactly to the release commit | PASS |
+| Release workflow (run 42133031373) in the protected `release` environment, approved by the owner: tag = version, tests, signed build, signature check | PASS |
+| Draft: exactly 6 files (Setup.exe, MSI, Portable.zip, two `.sig`, `SHA256SUMS.txt`), draft + pre-release, text = release notes | PASS |
+| Both update signatures valid against the production key for exactly 0.6.0-alpha.1; refused for another version; not made with the test key (freshly created in this run) | PASS |
+| MSI: ProductVersion 0.6.0.1, UpgradeCode `{0C406486-4175-5369-A3EB-C50750955C8E}`, ProductCode `{52975FDC-3CB6-492E-86CA-24E11BB03495}` | PASS |
+| Portable ZIP: `Nexdir.exe` 0.6.0-alpha.1, `LICENSE.txt`, `THIRD-PARTY-NOTICES.txt`, `README.txt` | PASS |
+| Published by the owner's decision as a **pre-release**; 0.5.0-alpha.1 unchanged (6 files, last changed 2026-11-03) | PASS |
+
+SHA-256 of the published files:
+
+```text
+595f8e3599e95e08b4296dc0f3e96e94066d4d42300b11156b98387b52e2d64c  Nexdir-0.6.0-alpha.1-Portable.zip
+576de70f041180183a2f265fbeb5473fa0f033ae48b4900fb7b41ae2446b323e  Nexdir-0.6.0-alpha.1-Setup.exe
+f6c15e4ea6f297a8b0b0163e560477b18ecd46f8b00678830201613b0c425862  Nexdir-0.6.0-alpha.1-Setup.exe.sig
+0e0ae8b093190eedae2ec75e60d54b9b42462ce37b51d01a491f79b7451298b1  Nexdir-0.6.0-alpha.1.msi
+4d52d4fd4048f610d09a1aeb36cb2864e11c6b646cdde6690cdb599b244c5028  Nexdir-0.6.0-alpha.1.msi.sig
+```
+
+## After publication
+
+| Check | Result |
+|---|---|
+| Public downloads byte-identical to the verified draft; checksums 5/5; both signatures valid against the production key | PASS |
+| *Update feed* workflow: `preview.json` → 0.6.0-alpha.1, `stable.json` → no release (no alpha in Stable) | PASS |
+| Feed entries: signatures equal the published `.sig` files, sizes correct | PASS |
+| Discord announcement | not posted: pre-release announcements are turned off (`DISCORD_ANNOUNCE_PRERELEASES` not set) — existing configuration |
+
+### Real update path from the published 0.5.0-alpha.1 (outside the app container, production key)
+
+The published 0.5.0-alpha.1 installers were downloaded and checked against their published
+checksums, installed, and updated through *Check for Updates* against the real GitHub feed. The
+owner's profile was backed up before and restored exactly afterwards (SHA-256); the owner's own
+Nexdir was not involved.
+
+| Test | NSIS (Setup.exe) | MSI (UAC by the owner) |
+|---|---|---|
+| Published 0.5.0-alpha.1 installs (MSI: per machine to `C:\Program Files\Nexdir`, ProductCode `{5F84A7EA-…}`) | PASS | PASS |
+| Detected installer type, can install, channel Beta (Preview) | PASS | PASS |
+| Real feed offers 0.6.0-alpha.1 with date, channel, size and release notes | PASS | PASS |
+| Download from GitHub, signature *Verified* with the production key | PASS | PASS |
+| *Install Update…* → *Close Nexdir and Install*: Nexdir closes, installer replaces 0.5.0 in ≈2 s | PASS | PASS |
+| MSI: exactly one product afterwards, new ProductCode `{52975FDC-…}` | — | PASS |
+| Nexdir restarted by the installer | PASS | PASS |
+| One-time message *Nexdir was updated to 0.6.0-alpha.1* | PASS (0.8 s after closing) | NOT TESTED (restart without the test's debugging connection) |
+| Version 0.6.0-alpha.1, same installer type, result reported once | PASS | PASS |
+| *Network* present; settings, channel and automatic-check settings kept | PASS | PASS |
+| Uninstall: no entry, files or shortcuts left; profile kept | PASS | PASS |
+| **Total** | **19/19** | **24/25** |
+
+## Final assessment
+
+Nexdir 0.6.0-alpha.1 is published as a signed pre-release and is offered to 0.5.0-alpha.1 users
+through the Beta (Preview) channel; the update was verified end to end for both installer types
+with the published files and the production key. Open: NAS hardware, Windows 10, physical network
+loss, and the documented limitations above.
